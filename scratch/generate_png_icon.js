@@ -84,7 +84,7 @@ function getGradientColor(ny) {
   }
 }
 
-// Generate 256x256 AiroShare Sunset Icon PNG (Thickened Elements)
+// Generate 256x256 AiroShare Perfect Sunset Icon PNG (Thickened Elements)
 const pngBuffer = createPng(256, 256, (x, y, w, h) => {
   const nx = x / w;
   const ny = y / h;
@@ -105,15 +105,15 @@ const pngBuffer = createPng(256, 256, (x, y, w, h) => {
   let b = gb;
   let a = 255;
 
-  // Draw PC Monitor Frame inside (center box matching Airoshare-thick.svg)
-  // Bezel Box coordinates: x=250 to 750, y=270 to 550
-  const isMonitorFrame = (nx >= 0.25 && nx <= 0.75 && ny >= 0.27 && ny <= 0.55);
-  // Bezel thickness is 40 units out of 1000 (relative 0.04)
-  const isMonitorBezel = isMonitorFrame && (nx < 0.29 || nx > 0.71 || ny < 0.31 || ny > 0.51);
-  // PC Stand Neck: x=470 to 530, y=540 to 610
-  const isStandNeck = (nx >= 0.47 && nx <= 0.53 && ny >= 0.54 && ny <= 0.61);
-  // PC Stand Base Line: x=390 to 610, y=610, thickness=32 (relative 0.016 radius)
-  const isStandBase = (nx >= 0.39 && nx <= 0.61 && Math.abs(ny - 0.61) < 0.016);
+  // Draw PC Monitor Frame inside (center box matching AiroShare-Perfect.svg)
+  // Bezel Box coordinates: x=170 to 830, y=200 to 570
+  const isMonitorFrame = (nx >= 0.17 && nx <= 0.83 && ny >= 0.20 && ny <= 0.57);
+  // Bezel thickness is 60 units out of 1000 (relative 0.06)
+  const isMonitorBezel = isMonitorFrame && (nx < 0.23 || nx > 0.77 || ny < 0.26 || ny > 0.51);
+  // PC Stand Neck: x=450 to 550, y=575 to 655
+  const isStandNeck = (nx >= 0.45 && nx <= 0.55 && ny >= 0.575 && ny <= 0.655);
+  // PC Stand Base Line: x=340 to 660, y=655, thickness=50 (relative 0.025 radius)
+  const isStandBase = (nx >= 0.34 && nx <= 0.66 && Math.abs(ny - 0.655) < 0.025);
 
   if (isMonitorBezel || isStandNeck || isStandBase) {
     return [255, 255, 255, 255]; // White monitor border & stand elements
@@ -126,17 +126,17 @@ const pngBuffer = createPng(256, 256, (x, y, w, h) => {
     b = Math.round(43 - ny * 20);
   }
 
-  // Draw Share Network Nodes & Connection Tracks (Thickened)
-  // Node 1: cx=430, cy=410, r=26 (relative 0.026)
-  const isNode1 = (Math.hypot(nx - 0.43, ny - 0.41) < 0.026);
-  // Node 2: cx=560, cy=345, r=26
-  const isNode2 = (Math.hypot(nx - 0.56, ny - 0.345) < 0.026);
-  // Node 3: cx=560, cy=475, r=26
-  const isNode3 = (Math.hypot(nx - 0.56, ny - 0.475) < 0.026);
+  // Draw Share Network Nodes & Connection Tracks (Ultra-Thickened)
+  // Node 1: cx=410, cy=385, r=38 (relative 0.038)
+  const isNode1 = (Math.hypot(nx - 0.41, ny - 0.385) < 0.038);
+  // Node 2: cx=585, cy=300, r=38
+  const isNode2 = (Math.hypot(nx - 0.585, ny - 0.30) < 0.038);
+  // Node 3: cx=585, cy=470, r=38
+  const isNode3 = (Math.hypot(nx - 0.585, ny - 0.470) < 0.038);
 
-  // Connection Tracks (Stroke width 26, i.e., relative 0.013 radius)
-  const isTrack1 = distToSegment(nx, ny, 0.43, 0.41, 0.56, 0.345) < 0.013;
-  const isTrack2 = distToSegment(nx, ny, 0.43, 0.41, 0.56, 0.475) < 0.013;
+  // Connection Tracks (Stroke width 40, i.e., relative 0.020 radius)
+  const isTrack1 = distToSegment(nx, ny, 0.41, 0.385, 0.585, 0.30) < 0.020;
+  const isTrack2 = distToSegment(nx, ny, 0.41, 0.385, 0.585, 0.470) < 0.020;
 
   if (isNode1 || isNode2 || isNode3 || isTrack1 || isTrack2) {
     return [255, 255, 255, 255];
