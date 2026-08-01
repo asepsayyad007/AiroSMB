@@ -23,7 +23,7 @@ const dlnaConfig = {
   enableDlna: true,
   enableLogging: true,
 
-  mediaRoot: 'C:\\Users\\aseps\\Downloads',
+  mediaRoot: 'C:\\Users\\aseps\\Downloads\\Video',
   
   // Supported MIME types map for DLNA ProtocolInfo
   mimeProtocolInfoMap: {

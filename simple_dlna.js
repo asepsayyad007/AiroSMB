@@ -9,7 +9,7 @@ import dlnaRouter from './src/dlna/index.js';
 import mime from 'mime-types';
 
 // --- Default media directory ---
-const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'videos');
+const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'Video');
 if (!fs.existsSync(defaultVideosDir)) {
   try { fs.mkdirSync(defaultVideosDir, { recursive: true }); } catch (e) {}
 }
