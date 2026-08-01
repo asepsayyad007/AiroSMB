@@ -10,7 +10,7 @@ const detectBrowserIp = () => {
   if (host && host !== 'localhost' && host !== '127.0.0.1' && /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
     return host;
   }
-  return '127.0.0.1';
+  return '';
 };
 
 const detectBrowserHostname = () => {
@@ -53,13 +53,13 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const [uploading, setUploading] = useState(false);
   const [activeMediaFile, setActiveMediaFile] = useState(null);
 
-  // Network variables (100% Dynamic, zero hardcoded strings)
+  // Network variables (Physical LAN IP, zero 127.0.0.1 fallbacks)
   const primaryIp = networkInfo?.primaryIp || detectBrowserIp();
   const port = networkInfo?.port || window.location.port || 3000;
   const hostname = networkInfo?.hostname || detectBrowserHostname();
-  const connectionType = networkInfo?.connectionType || 'Active Network';
-  const serverUrl = `http://${primaryIp}:${port}`;
-  const ftpUrl = `ftp://${primaryIp}:2121`;
+  const connectionType = networkInfo?.connectionType || 'Wi-Fi / Ethernet';
+  const serverUrl = primaryIp ? `http://${primaryIp}:${port}` : 'Loading URL...';
+  const ftpUrl = primaryIp ? `ftp://${primaryIp}:2121` : 'Loading FTP...';
   const storage = networkInfo?.storage || { total: 0, free: 0, used: 0, percentUsed: 0 };
 
   const formatGb = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
@@ -174,7 +174,8 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
     setSharedFilesList(selectedFilesObj);
 
     const encodedPaths = targetFilePaths.map(p => btoa(p)).join(',');
-    const fullShareUrl = `http://${primaryIp}:${port}/share?files=${encodedPaths}`;
+    const shareHostIp = primaryIp || window.location.hostname;
+    const fullShareUrl = `http://${shareHostIp}:${port}/share?files=${encodedPaths}`;
     setShareWebUrl(fullShareUrl);
 
     try {
@@ -279,7 +280,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
 
           <div className="metric-item">
             <span className="metric-label">Active Network IP</span>
-            <span className="metric-value">{primaryIp}</span>
+            <span className="metric-value">{primaryIp || 'Loading LAN IP...'}</span>
           </div>
 
           <div className="metric-item">
@@ -556,7 +557,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                 <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                   {filteredFiles.map((file, idx) => {
                     const isSelected = selectedFilePaths.includes(file.path);
-                    const absoluteStreamUrl = `http://${primaryIp}:${port}${file.streamUrl}`;
+                    const absoluteStreamUrl = primaryIp ? `http://${primaryIp}:${port}${file.streamUrl}` : file.streamUrl;
                     const vlcUrl = `vlc://${absoluteStreamUrl}`;
 
                     return (

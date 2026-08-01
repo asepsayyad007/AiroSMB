@@ -10,7 +10,7 @@ const detectBrowserIp = () => {
   if (host && host !== 'localhost' && host !== '127.0.0.1' && /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
     return host;
   }
-  return '127.0.0.1';
+  return '';
 };
 
 const detectBrowserHostname = () => {
@@ -47,8 +47,8 @@ export default function App() {
   const primaryIp = networkInfo?.primaryIp || detectBrowserIp();
   const port = networkInfo?.port || window.location.port || 3000;
   const hostname = networkInfo?.hostname || detectBrowserHostname();
-  const connectionType = networkInfo?.connectionType || 'Active Network';
-  const serverUrl = `http://${primaryIp}:${port}`;
+  const connectionType = networkInfo?.connectionType || 'Network';
+  const serverUrl = primaryIp ? `http://${primaryIp}:${port}` : '';
 
   return (
     <div className="app-container">
@@ -107,7 +107,7 @@ export default function App() {
             <span>Server Active</span>
           </div>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {primaryIp}:{port}
+            {primaryIp ? `${primaryIp}:${port}` : 'Loading LAN IP...'}
           </div>
         </div>
 
@@ -128,7 +128,7 @@ export default function App() {
 
           <div className="top-actions">
             <span className="status-pill status-active">
-              <Wifi size={12} /> {connectionType} ({primaryIp})
+              <Wifi size={12} /> {connectionType} {primaryIp ? `(${primaryIp})` : 'Loading IP...'}
             </span>
 
             <button className="btn-pro-secondary" onClick={() => setShowTopQrModal(true)}>
