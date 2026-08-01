@@ -6,7 +6,6 @@ import os from 'os';
 import multer from 'multer';
 import mime from 'mime-types';
 import QRCode from 'qrcode';
-import AiroSmbServer from './smbServer.js';
 import AiroFtpServer from './ftpServer.js';
 
 // DLNA Module Imports
@@ -14,39 +13,46 @@ import dlnaRouter from './src/dlna/index.js';
 import mediaStore from './src/dlna/contentDirectory/mediaStore.js';
 import ssdpServer from './src/dlna/ssdp/ssdpServer.js';
 import getDeviceIcon from './src/dlna/device/icons.js';
+import clientTracker from './src/utils/clientTracker.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-let smbPort = process.env.SMB_PORT || 4450;
 let ftpPort = process.env.FTP_PORT || 2121;
 
-// Service Toggles State
+// Service Toggles State (3 Active Services)
 const servicesState = {
   http: true,
-  smb: true,
   ftp: true,
   dlna: true
 };
 
-// Initialize Native Node.js SMB Server instance
-let smbServerInstance = new AiroSmbServer({
-  port: smbPort,
-  shareName: 'AiroSMB',
-  sharePath: 'C:\\Users\\aseps\\Downloads'
-});
+// Set up default initial directory (Prioritizing Downloads/Video)
+const defaultVideoDir = path.join(os.homedir(), 'Downloads', 'Video');
+const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'videos');
+const defaultDownloadsDir = path.join(os.homedir(), 'Downloads');
 
-smbServerInstance.start().catch((err) => {
-  console.warn('[AiroSMB Native SMB Server Notice]', err.message);
-});
+let rootDirectory = fs.existsSync(defaultVideoDir) ? defaultVideoDir 
+                  : (fs.existsSync(defaultVideosDir) ? defaultVideosDir 
+                  : (fs.existsSync(defaultDownloadsDir) ? defaultDownloadsDir : os.homedir()));
+
+if (!fs.existsSync(rootDirectory)) {
+  try {
+    fs.mkdirSync(rootDirectory, { recursive: true });
+  } catch (e) {
+    rootDirectory = os.homedir();
+  }
+}
+
+console.log(`[AiroShare] Root Shared Directory initialized to: ${rootDirectory}`);
 
 // Initialize Native Node.js FTP Server instance
 let ftpServerInstance = new AiroFtpServer({
   port: ftpPort,
-  rootPath: 'C:\\Users\\aseps\\Downloads'
+  rootPath: rootDirectory
 });
 
 ftpServerInstance.start().catch((err) => {
-  console.warn('[AiroSMB Native FTP Server Notice]', err.message);
+  console.warn('[AiroShare Native FTP Server Notice]', err.message);
 });
 
 // Enable CORS & JSON parsing
@@ -67,27 +73,6 @@ if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
 }
 
-import clientTracker from './src/utils/clientTracker.js';
-
-// Set up default initial directory (Prioritizing Downloads/Video)
-const defaultVideoDir = path.join(os.homedir(), 'Downloads', 'Video');
-const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'videos');
-const defaultDownloadsDir = path.join(os.homedir(), 'Downloads');
-
-let rootDirectory = fs.existsSync(defaultVideoDir) ? defaultVideoDir 
-                  : (fs.existsSync(defaultVideosDir) ? defaultVideosDir 
-                  : (fs.existsSync(defaultDownloadsDir) ? defaultDownloadsDir : os.homedir()));
-
-if (!fs.existsSync(rootDirectory)) {
-  try {
-    fs.mkdirSync(rootDirectory, { recursive: true });
-  } catch (e) {
-    rootDirectory = os.homedir();
-  }
-}
-
-console.log(`[AiroSMB] Root Shared Directory initialized to: ${rootDirectory}`);
-
 // Track Active Client Connections
 app.use((req, res, next) => {
   if (!req.path.startsWith('/assets') && !req.path.startsWith('/api/clients')) {
@@ -96,7 +81,7 @@ app.use((req, res, next) => {
     clientTracker.logActivity({
       ip: clientIp,
       device: userAgent.includes('VLC') ? 'VLC Player' : (userAgent.includes('Mozilla') ? 'Web Browser' : userAgent),
-      protocol: req.path.startsWith('/dlna') ? 'DLNA / UPnP' : 'HTTP API',
+      protocol: req.path.startsWith('/dlna') ? 'DLNA / UPnP' : (req.path.startsWith('/api/ftp') ? 'FTP' : 'HTTP API'),
       activity: `${req.method} ${req.path}`
     });
   }
@@ -112,7 +97,6 @@ app.get('/api/clients', (req, res) => {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const targetDir = req.query.path ? decodeURIComponent(req.query.path) : rootDirectory;
-    // Security check to ensure targetDir exists
     if (fs.existsSync(targetDir) && fs.statSync(targetDir).isDirectory()) {
       cb(null, targetDir);
     } else {
@@ -120,26 +104,23 @@ const storage = multer.diskStorage({
     }
   },
   filename: (req, file, cb) => {
-    // Preserve original filename
     cb(null, file.originalname);
   }
 });
 const upload = multer({ storage });
 
-// Helper: Get local network IPv4 addresses (filtering out virtual & link-local IPs)
+// Helper: Get local network IPv4 addresses
 function getLocalIpAddresses() {
   const interfaces = os.networkInterfaces();
   const addresses = [];
 
   for (const name of Object.keys(interfaces)) {
     const lowerName = name.toLowerCase();
-    // Skip virtual host adapters
     if (lowerName.includes('virtual') || lowerName.includes('vbox') || lowerName.includes('vmnet') || lowerName.includes('wsl') || lowerName.includes('pseudo') || lowerName.includes('loopback')) {
       continue;
     }
 
     for (const net of interfaces[name]) {
-      // Filter for IPv4, non-internal, and non-APIPA (169.254.x.x)
       if (net.family === 'IPv4' && !net.internal && !net.address.startsWith('169.254.')) {
         addresses.push({
           interface: name,
@@ -149,7 +130,6 @@ function getLocalIpAddresses() {
     }
   }
 
-  // Sort so physical Wi-Fi/Ethernet adapters and standard subnets (192.168.1.x / 192.168.0.x / 10.x) come first
   addresses.sort((a, b) => {
     const aIsWifiEth = /wi-fi|wifi|ethernet|lan/i.test(a.interface);
     const bIsWifiEth = /wi-fi|wifi|ethernet|lan/i.test(b.interface);
@@ -186,7 +166,7 @@ function getFileCategory(mimeType, filename) {
   return 'other';
 }
 
-// API: Get Status of All Server Engines & Toggles
+// API: Get Status of 3 Active Services
 app.get('/api/services/status', (req, res) => {
   const ips = getLocalIpAddresses();
   const primaryIp = ips.length > 0 ? ips[0].address : 'localhost';
@@ -196,11 +176,6 @@ app.get('/api/services/status', (req, res) => {
       enabled: servicesState.http,
       port: PORT,
       url: `http://${primaryIp}:${PORT}`
-    },
-    smb: {
-      enabled: servicesState.smb && smbServerInstance && smbServerInstance.isRunning,
-      port: smbPort,
-      url: `smb://${primaryIp}:${smbPort}/AiroSMB`
     },
     ftp: {
       enabled: servicesState.ftp && ftpServerInstance && ftpServerInstance.isRunning,
@@ -215,26 +190,15 @@ app.get('/api/services/status', (req, res) => {
   });
 });
 
-// API: Toggle any server service ON or OFF live
+// API: Toggle any server service ON or OFF live (http, ftp, dlna)
 app.post('/api/services/toggle', async (req, res) => {
   try {
     const { service, enable } = req.body;
-    if (!['http', 'smb', 'ftp', 'dlna'].includes(service)) {
+    if (!['http', 'ftp', 'dlna'].includes(service)) {
       return res.status(400).json({ error: 'Invalid service name' });
     }
 
     servicesState[service] = !!enable;
-
-    if (service === 'smb') {
-      if (enable) {
-        if (!smbServerInstance || !smbServerInstance.isRunning) {
-          smbServerInstance = new AiroSmbServer({ port: smbPort, shareName: 'AiroSMB', sharePath: rootDirectory });
-          await smbServerInstance.start();
-        }
-      } else {
-        if (smbServerInstance) await smbServerInstance.stop();
-      }
-    }
 
     if (service === 'ftp') {
       if (enable) {
@@ -354,7 +318,7 @@ app.get('/api/plex/feed', (req, res) => {
     }
 
     res.json({
-      serverName: 'AiroSMB Plex & Media Engine',
+      serverName: 'AiroShare Media Engine',
       hostname: os.hostname(),
       primaryIp,
       port: PORT,
@@ -367,61 +331,9 @@ app.get('/api/plex/feed', (req, res) => {
   }
 });
 
-// API: UPnP / DLNA Device Description XML fallback alias for Smart TVs
+// API: UPnP / DLNA Device Description XML fallback alias
 app.get('/dlna/device.xml', (req, res) => {
   res.redirect('/dlna/description.xml');
-});
-
-// API: Get SMB Server Status & Info
-app.get('/api/smb/status', (req, res) => {
-  const ips = getLocalIpAddresses();
-  const primaryIp = ips.length > 0 ? ips[0].address : 'localhost';
-
-  res.json({
-    isRunning: smbServerInstance ? smbServerInstance.isRunning : false,
-    port: smbPort,
-    shareName: 'AiroSMB',
-    sharePath: rootDirectory,
-    anonymousAuth: true,
-    vlcSmbPath: `smb://${primaryIp}:${smbPort}/AiroSMB`,
-    vlcStandardSmbPath: `smb://${primaryIp}/AiroSMB`
-  });
-});
-
-// API: Update SMB Server Config (Change Custom Port & Toggle)
-app.post('/api/smb/config', async (req, res) => {
-  try {
-    const { newPort, enable } = req.body;
-    
-    if (newPort && !isNaN(newPort)) {
-      smbPort = parseInt(newPort, 10);
-    }
-
-    if (smbServerInstance) {
-      await smbServerInstance.stop();
-    }
-
-    if (enable !== false) {
-      smbServerInstance = new AiroSmbServer({
-        port: smbPort,
-        shareName: 'AiroSMB',
-        sharePath: rootDirectory
-      });
-      await smbServerInstance.start();
-    }
-
-    const ips = getLocalIpAddresses();
-    const primaryIp = ips.length > 0 ? ips[0].address : 'localhost';
-
-    res.json({
-      success: true,
-      isRunning: smbServerInstance ? smbServerInstance.isRunning : false,
-      port: smbPort,
-      vlcSmbPath: `smb://${primaryIp}:${smbPort}/AiroSMB`
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
 // API: Get Network Info & Storage Stats
@@ -430,12 +342,9 @@ app.get('/api/network/info', async (req, res) => {
     const ips = getLocalIpAddresses();
     const primaryIp = ips.length > 0 ? ips[0].address : 'localhost';
     const serverUrl = `http://${primaryIp}:${PORT}`;
-    const smbPath = `\\\\${os.hostname()}\\AiroShare`;
 
-    // Generate pairing QR code URL
     const qrDataUrl = await QRCode.toDataURL(serverUrl, { margin: 1, width: 300 });
 
-    // Storage info (Node 19.6+ supports statfsSync)
     let storageInfo = { total: 0, free: 0, used: 0, percentUsed: 0 };
     try {
       if (fs.statfsSync) {
@@ -458,7 +367,6 @@ app.get('/api/network/info', async (req, res) => {
       primaryIp,
       port: PORT,
       serverUrl,
-      smbPath,
       qrDataUrl,
       storage: storageInfo
     });
@@ -473,7 +381,7 @@ app.post('/api/network/set-root', async (req, res) => {
   if (newPath && fs.existsSync(newPath) && fs.statSync(newPath).isDirectory()) {
     rootDirectory = path.resolve(newPath);
     await mediaStore.scanMedia(rootDirectory);
-    console.log(`[AiroSMB] Root directory updated to: ${rootDirectory}`);
+    console.log(`[AiroShare] Root directory updated to: ${rootDirectory}`);
     return res.json({ success: true, rootDirectory });
   }
   res.status(400).json({ error: 'Invalid directory path provided' });
@@ -484,7 +392,6 @@ app.get('/api/files/browse', (req, res) => {
   try {
     let targetPath = req.query.path ? decodeURIComponent(req.query.path) : rootDirectory;
     
-    // Safety fallback
     if (!fs.existsSync(targetPath)) {
       targetPath = rootDirectory;
     }
@@ -503,7 +410,6 @@ app.get('/api/files/browse', (req, res) => {
       try {
         const fullItemPath = path.join(targetPath, item.name);
         
-        // Skip hidden/system files if desired
         if (item.name.startsWith('$') || item.name === 'System Volume Information') continue;
 
         if (item.isDirectory()) {
@@ -532,15 +438,13 @@ app.get('/api/files/browse', (req, res) => {
           });
         }
       } catch (e) {
-        // Ignore unreadable individual files/folders (permission issues)
+        // Ignore unreadable individual files/folders
       }
     }
 
-    // Sort: folders first, then files alphabetically
     directories.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     files.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-    // Compute parent directory path if not at root filesystem drive
     const parentPath = path.dirname(targetPath) !== targetPath ? path.dirname(targetPath) : null;
 
     res.json({
@@ -587,7 +491,7 @@ app.post('/api/files/upload', upload.array('files'), async (req, res) => {
   }
 });
 
-// API: Root level M3U Playlist shortcut for password-free VLC streaming
+// API: Root level M3U Playlist shortcut
 app.get('/playlist.m3u', (req, res) => {
   res.redirect('/api/vlc/playlist');
 });
@@ -605,9 +509,8 @@ app.get('/api/vlc/playlist', (req, res) => {
     }
 
     const items = fs.readdirSync(targetPath, { withFileTypes: true });
-    let m3uContent = '#EXTM3U\n# EXTM3U Playlist generated by AiroSMB Home Server\n\n';
+    let m3uContent = '#EXTM3U\n# EXTM3U Playlist generated by AiroShare Home Server\n\n';
 
-    let count = 0;
     for (const item of items) {
       if (item.isFile()) {
         const fullPath = path.join(targetPath, item.name);
@@ -615,14 +518,13 @@ app.get('/api/vlc/playlist', (req, res) => {
         const category = getFileCategory(mimeType, item.name);
 
         if (category === 'video' || category === 'audio') {
-          count++;
           const streamUrl = `${baseUrl}/api/files/stream?path=${encodeURIComponent(fullPath)}`;
           m3uContent += `#EXTINF:-1,${item.name}\n${streamUrl}\n\n`;
         }
       }
     }
 
-    const folderName = path.basename(targetPath) || 'AiroSMB_Playlist';
+    const folderName = path.basename(targetPath) || 'AiroShare_Playlist';
     res.setHeader('Content-Type', 'audio/x-mpegurl');
     res.setHeader('Content-Disposition', `attachment; filename="${folderName}.m3u"`);
     res.send(m3uContent);
@@ -653,7 +555,7 @@ app.get('*', (req, res) => {
   if (fs.existsSync(path.join(distPath, 'index.html'))) {
     res.sendFile(path.join(distPath, 'index.html'));
   } else {
-    res.send('AiroSMB Server is running. Frontend dev server is available at http://localhost:5173');
+    res.send('AiroShare Server is running. Frontend dev server is available at http://localhost:5173');
   }
 });
 
@@ -668,7 +570,6 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`LAN Network stream: http://${ip.address}:${PORT}`);
   });
 
-  // Start DLNA SSDP Discovery Server & Scan Media Store
   try {
     await mediaStore.scanMedia(rootDirectory);
     ssdpServer.start(primaryIp, PORT);

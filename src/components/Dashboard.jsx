@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   HardDrive, Wifi, QrCode, Tv, Folder, File, Film, Music, Image as ImageIcon, FileText, Archive,
   Copy, Check, Server, Settings, Search, Upload, ArrowLeft, Play, ExternalLink, 
-  Download, RefreshCw, ChevronRight, Power, Shield
+  Download, RefreshCw, ChevronRight, Power
 } from 'lucide-react';
 
 export default function Dashboard({ networkInfo, onRefreshNetwork }) {
@@ -11,8 +11,8 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const [savingPath, setSavingPath] = useState(false);
   const [pathMessage, setPathMessage] = useState('');
 
-  // Live Service Toggles State
-  const [services, setServices] = useState({ http: true, smb: true, ftp: true, dlna: true });
+  // Live Service Toggles State (3 Active Services)
+  const [services, setServices] = useState({ http: true, ftp: true, dlna: true });
 
   // Integrated File Browser State
   const [currentPath, setCurrentPath] = useState('');
@@ -34,7 +34,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const port = networkInfo?.port || 3000;
   const hostname = networkInfo?.hostname || 'PC';
   const serverUrl = networkInfo?.serverUrl || `http://${primaryIp}:${port}`;
-  const smbPath = networkInfo?.smbPath || `\\\\${hostname}\\AiroShare`;
   const ftpUrl = `ftp://${primaryIp}:2121`;
   const m3uUrl = `${serverUrl}/playlist.m3u`;
   const storage = networkInfo?.storage || { total: 0, free: 0, used: 0, percentUsed: 0 };
@@ -49,7 +48,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
       if (res.ok) {
         setServices({
           http: data.http?.enabled ?? true,
-          smb: data.smb?.enabled ?? true,
           ftp: data.ftp?.enabled ?? true,
           dlna: data.dlna?.enabled ?? true
         });
@@ -205,14 +203,14 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
         </div>
       </div>
 
-      {/* 2. Network Services Cards with Live Start/Stop Toggles */}
-      <div className="grid-4">
+      {/* 2. 3 Active Services Cards with Live Start/Stop Toggles */}
+      <div className="grid-3">
         
         {/* HTTP Web Server */}
         <div className="pro-card">
           <div className="card-header-clean">
-            <span className="card-title-text">HTTP Web Server</span>
-            <Wifi size={15} color="var(--accent-cyan)" />
+            <span className="card-title-text">HTTP Web Engine</span>
+            <Wifi size={15} color="var(--accent-orange)" />
           </div>
           <div className="card-mono-value">
             {serverUrl}
@@ -223,24 +221,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
             style={{ justifyContent: 'center', background: services.http ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.http ? '#f87171' : 'var(--accent-emerald)' }}
           >
             <Power size={13} /> {services.http ? 'Stop Service' : 'Start Service'}
-          </button>
-        </div>
-
-        {/* Windows SMB Share */}
-        <div className="pro-card">
-          <div className="card-header-clean">
-            <span className="card-title-text">Windows SMB Share</span>
-            <Server size={15} color="var(--accent-blue)" />
-          </div>
-          <div className="card-mono-value">
-            {smbPath}
-          </div>
-          <button 
-            onClick={() => toggleService('smb', !services.smb)} 
-            className="btn-pro-secondary w-full"
-            style={{ justifyContent: 'center', background: services.smb ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.smb ? '#f87171' : 'var(--accent-emerald)' }}
-          >
-            <Power size={13} /> {services.smb ? 'Stop Service' : 'Start Service'}
           </button>
         </div>
 
@@ -266,7 +246,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
         <div className="pro-card">
           <div className="card-header-clean">
             <span className="card-title-text">DLNA Broadcaster</span>
-            <Film size={15} color="var(--accent-purple)" />
+            <Film size={15} color="var(--accent-amber)" />
           </div>
           <div className="card-mono-value">
             UDP Port 1900
@@ -288,7 +268,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
         {/* Directory Switcher Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-            <Folder size={18} color="var(--accent-cyan)" />
+            <Folder size={18} color="var(--accent-orange)" />
             <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>Shared Directory:</span>
             <form onSubmit={handleUpdateRoot} style={{ display: 'flex', gap: '8px', flex: 1 }}>
               <input 
@@ -320,9 +300,9 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                 <ArrowLeft size={13} /> Back
               </button>
             )}
-            <HardDrive size={14} color="var(--accent-cyan)" />
+            <HardDrive size={14} color="var(--accent-orange)" />
             <span 
-              style={{ fontSize: '0.82rem', cursor: 'pointer', fontWeight: 600, color: 'var(--accent-cyan)' }}
+              style={{ fontSize: '0.82rem', cursor: 'pointer', fontWeight: 600, color: 'var(--accent-orange)' }}
               onClick={() => fetchDirectory(networkInfo?.rootDirectory)}
             >
               Shared Root
@@ -358,8 +338,8 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                 <button 
                   key={cat}
                   style={{ 
-                    background: selectedCategory === cat ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    color: selectedCategory === cat ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                    background: selectedCategory === cat ? 'rgba(255, 93, 11, 0.15)' : 'transparent',
+                    color: selectedCategory === cat ? 'var(--accent-orange)' : 'var(--text-muted)',
                     border: 'none', padding: '4px 8px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500 
                   }}
                   onClick={() => setSelectedCategory(cat)}
@@ -384,7 +364,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
         {/* Directory Files Output (Strict List View Only) */}
         {loadingFiles ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            <RefreshCw size={24} className="spin" style={{ marginBottom: '8px', color: 'var(--accent-cyan)' }} />
+            <RefreshCw size={24} className="spin" style={{ marginBottom: '8px', color: 'var(--accent-orange)' }} />
             <p>Loading directory content...</p>
           </div>
         ) : (
@@ -413,7 +393,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                       className="list-row-hover"
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Folder size={18} color="var(--accent-blue)" />
+                        <Folder size={18} color="var(--accent-orange)" />
                         <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)' }}>{dir.name}</span>
                       </div>
                       <ChevronRight size={14} color="var(--text-muted)" />
@@ -453,7 +433,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                         className="list-row-hover"
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, overflow: 'hidden' }}>
-                          <div style={{ color: 'var(--accent-cyan)' }}>{getFileIcon(file.category)}</div>
+                          <div style={{ color: 'var(--accent-orange)' }}>{getFileIcon(file.category)}</div>
                           <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</span>
                         </div>
 
@@ -492,7 +472,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '6px' }}>Upload File to PC</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              Target Folder: <code style={{ color: 'var(--accent-cyan)' }}>{currentPath}</code>
+              Target Folder: <code style={{ color: 'var(--accent-orange)' }}>{currentPath}</code>
             </p>
 
             <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
