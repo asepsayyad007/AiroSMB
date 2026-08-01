@@ -38,12 +38,12 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const [activeMediaFile, setActiveMediaFile] = useState(null);
 
   // Network variables
-  const primaryIp = networkInfo?.primaryIp || '192.168.x.x';
+  const primaryIp = networkInfo?.primaryIp || '';
   const port = networkInfo?.port || 3000;
   const hostname = networkInfo?.hostname || 'AsepPC';
-  const mdnsHost = networkInfo?.mdnsHost || `${hostname.toLowerCase()}.local`;
-  const serverUrl = networkInfo?.serverUrl || `http://${primaryIp}:${port}`;
-  const ftpUrl = `ftp://${primaryIp}:2121`;
+  const connectionType = networkInfo?.connectionType || 'Wi-Fi / Ethernet';
+  const serverUrl = primaryIp ? `http://${primaryIp}:${port}` : 'Detecting IP...';
+  const ftpUrl = primaryIp ? `ftp://${primaryIp}:2121` : 'Detecting FTP...';
   const storage = networkInfo?.storage || { total: 0, free: 0, used: 0, percentUsed: 0 };
 
   const formatGb = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
@@ -252,13 +252,13 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
       <div className="pro-card" style={{ padding: '16px 20px' }}>
         <div className="metrics-banner-grid">
           <div className="metric-item">
-            <span className="metric-label">Local Hostname</span>
-            <span className="metric-value">{mdnsHost}</span>
+            <span className="metric-label">Network Type</span>
+            <span className="metric-value">{connectionType}</span>
           </div>
 
           <div className="metric-item">
-            <span className="metric-label">Network IP</span>
-            <span className="metric-value">{primaryIp}</span>
+            <span className="metric-label">Active Network IP</span>
+            <span className="metric-value">{primaryIp || 'Detecting...'}</span>
           </div>
 
           <div className="metric-item">

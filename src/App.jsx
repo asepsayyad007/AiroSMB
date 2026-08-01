@@ -26,11 +26,11 @@ export default function App() {
     fetchNetworkInfo();
   }, []);
 
-  const primaryIp = networkInfo?.primaryIp || '192.168.x.x';
+  const primaryIp = networkInfo?.primaryIp || '';
   const port = networkInfo?.port || 3000;
   const hostname = networkInfo?.hostname || 'AsepPC';
-  const mdnsHost = networkInfo?.mdnsHost || `${hostname.toLowerCase()}.local`;
-  const serverUrl = networkInfo?.serverUrl || `http://${primaryIp}:${port}`;
+  const connectionType = networkInfo?.connectionType || 'Network';
+  const serverUrl = networkInfo?.serverUrl || (primaryIp ? `http://${primaryIp}:${port}` : '');
 
   return (
     <div className="app-container">
@@ -89,7 +89,7 @@ export default function App() {
             <span>Server Active</span>
           </div>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {primaryIp}:{port}
+            {primaryIp ? `${primaryIp}:${port}` : 'Detecting IP...'}
           </div>
         </div>
 
@@ -110,7 +110,7 @@ export default function App() {
 
           <div className="top-actions">
             <span className="status-pill status-active">
-              <Wifi size={12} /> {primaryIp}
+              <Wifi size={12} /> {connectionType} {primaryIp ? `(${primaryIp})` : ''}
             </span>
 
             <button className="btn-pro-secondary" onClick={() => setShowTopQrModal(true)}>

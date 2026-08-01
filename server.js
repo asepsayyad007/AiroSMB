@@ -403,6 +403,14 @@ app.get('/api/network/info', async (req, res) => {
   try {
     const hostNameStr = os.hostname();
     const mdnsHost = `${hostNameStr.toLowerCase()}.local`;
+    const activeNet = ips.length > 0 ? ips[0] : { interface: 'LAN', address: '127.0.0.1' };
+    let connectionType = 'Ethernet';
+    if (/wi-fi|wifi|wlan/i.test(activeNet.interface)) {
+      connectionType = 'Wi-Fi';
+    } else if (/ethernet|lan/i.test(activeNet.interface)) {
+      connectionType = 'Ethernet';
+    }
+
     const localDomainUrl = `http://${mdnsHost}:${PORT}`;
     const serverUrl = `http://${primaryIp}:${PORT}`;
 
@@ -425,6 +433,8 @@ app.get('/api/network/info', async (req, res) => {
     res.json({
       hostname: hostNameStr,
       mdnsHost,
+      connectionType,
+      activeInterface: activeNet.interface,
       localDomainUrl,
       platform: os.platform(),
       rootDirectory,
