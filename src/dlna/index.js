@@ -160,7 +160,7 @@ router.get('/presentation', (req, res) => {
   </div>
 
   <div class="card">
-    <h2>🔗 DLNA Server Endpoints</h2>
+    <h2>DLNA Server Endpoints</h2>
     <ul>
       <li><a href="/dlna/description.xml" target="_blank">GET /dlna/description.xml</a> (UPnP Device XML)</li>
       <li><a href="/api/plex/feed" target="_blank">GET /api/plex/feed</a> (Plex & Kodi Feed API)</li>

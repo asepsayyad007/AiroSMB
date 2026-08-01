@@ -23,7 +23,7 @@ const mediaDir = args[0]
 const PREFERRED_PORT = parseInt(args[1], 10) || 3000;
 
 if (!fs.existsSync(mediaDir)) {
-  console.error(`❌ Media directory does not exist: ${mediaDir}`);
+  console.error(`[AiroSMB] Media directory does not exist: ${mediaDir}`);
   process.exit(1);
 }
 
@@ -82,18 +82,18 @@ app.get('/api/files/stream', handleMediaStream);
 // --- Start Server ---
 const PORT = await findFreePort(PREFERRED_PORT);
 if (PORT !== PREFERRED_PORT) {
-  console.warn(`\n⚠️  Port ${PREFERRED_PORT} is busy — using port ${PORT} instead.`);
+  console.warn(`[AiroSMB] Port ${PREFERRED_PORT} busy, using port ${PORT}.`);
 }
 
 const primaryIp = getPrimaryIp();
 
 const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log('\n==================================================');
-  console.log(`⚡ AiroSMB High-Performance Gigabit DLNA Media Server`);
-  console.log(`📂 Sharing:    ${mediaDir}`);
-  console.log(`🌐 LAN URL:    http://${primaryIp}:${PORT}`);
-  console.log(`📄 Device XML: http://${primaryIp}:${PORT}/dlna/description.xml`);
-  console.log(`📊 Dashboard:  http://${primaryIp}:${PORT}/dlna/presentation`);
+  console.log(`AiroShare High-Performance Gigabit DLNA Media Server`);
+  console.log(`Sharing Path: C:\\Users\\aseps\\Downloads\\Video`);
+  console.log(`LAN Web URL:  http://${primaryIp}:${PORT}`);
+  console.log(`Device XML:   http://${primaryIp}:${PORT}/dlna/description.xml`);
+  console.log(`Dashboard:    http://${primaryIp}:${PORT}/dlna/presentation`);
   console.log('==================================================\n');
 
   // Scan media files
@@ -102,8 +102,8 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   // Start SSDP broadcaster — use detected LAN IP
   ssdpServer.start(primaryIp, PORT);
 
-  console.log('\n✅ DLNA server ready! Open VLC -> View -> Playlist -> Universal Plug\'n\'Play');
-  console.log(`✅ Or open on your TV: http://${primaryIp}:${PORT}/dlna/presentation\n`);
+  console.log('\nDLNA server ready. Open VLC -> View -> Playlist -> Universal Plug\'n\'Play');
+  console.log(`Or open in browser: http://${primaryIp}:${PORT}/dlna/presentation\n`);
 });
 
 // --- Graceful Process Shutdown ---

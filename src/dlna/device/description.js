@@ -34,6 +34,13 @@ export function getDeviceDescriptionXml(baseUrl) {
 
     <iconList>
       <icon>
+        <mimetype>image/svg+xml</mimetype>
+        <width>512</width>
+        <height>512</height>
+        <depth>24</depth>
+        <url>/icon-512.svg</url>
+      </icon>
+      <icon>
         <mimetype>image/png</mimetype>
         <width>64</width>
         <height>64</height>

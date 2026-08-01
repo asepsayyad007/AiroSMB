@@ -5,11 +5,7 @@ import dlnaConfig from '../../../config/dlna.js';
 
 /**
  * Robust UPnP / DLNA MediaStore
- * Fixes VLC & Smart TV empty directory issue:
- *  1. Maps all standard UPnP container IDs ('0', '1', '0/1', 'video', 'movies', etc.)
- *  2. Provides an "All Videos" container containing ALL video files regardless of size
- *  3. Builds real physical directory tree navigation ("Folders & Files")
- *  4. Supports all video/audio/image extensions with rich DLNA protocolInfo
+ * Maps standard UPnP container IDs and provides flat + hierarchical directory trees
  */
 class MediaStore {
   constructor() {
@@ -35,11 +31,11 @@ class MediaStore {
       childrenIds: ['0/all', '0/movies', '0/videos', '0/tvshows', '0/music', '0/photos']
     });
 
-    // 0/all: All Videos & Media (Flat view of everything)
+    // 0/all: All Videos & Media
     this.containers.set('0/all', {
       id: '0/all',
       parentId: '0',
-      title: '📁 All Videos & Media',
+      title: 'All Videos & Media',
       upnpClass: 'object.container.storageFolder',
       childCount: 0,
       childrenIds: []
@@ -49,7 +45,7 @@ class MediaStore {
     this.containers.set('0/movies', {
       id: '0/movies',
       parentId: '0',
-      title: '🎬 Movies',
+      title: 'Movies',
       upnpClass: 'object.container.storageFolder',
       childCount: 0,
       childrenIds: []
@@ -59,7 +55,7 @@ class MediaStore {
     this.containers.set('0/videos', {
       id: '0/videos',
       parentId: '0',
-      title: '📹 Videos',
+      title: 'Videos',
       upnpClass: 'object.container.storageFolder',
       childCount: 0,
       childrenIds: []
@@ -69,7 +65,7 @@ class MediaStore {
     this.containers.set('0/tvshows', {
       id: '0/tvshows',
       parentId: '0',
-      title: '📺 TV Shows',
+      title: 'TV Shows',
       upnpClass: 'object.container.storageFolder',
       childCount: 0,
       childrenIds: []
@@ -79,7 +75,7 @@ class MediaStore {
     this.containers.set('0/music', {
       id: '0/music',
       parentId: '0',
-      title: '🎵 Music',
+      title: 'Music',
       upnpClass: 'object.container.storageFolder',
       childCount: 0,
       childrenIds: []
@@ -89,31 +85,25 @@ class MediaStore {
     this.containers.set('0/photos', {
       id: '0/photos',
       parentId: '0',
-      title: '🖼️ Photos',
+      title: 'Photos',
       upnpClass: 'object.container.storageFolder',
       childCount: 0,
       childrenIds: []
     });
   }
 
-  /**
-   * Resolve container ID aliases (VLC & TVs use various UPnP spec container IDs)
-   */
   resolveContainerId(id) {
     if (!id || id === '0' || id === 'root' || id === '-1') return '0';
     const lower = String(id).toLowerCase().trim();
 
-    // Standard UPnP Video Container Aliases -> Map to '0/all' or '0/movies'
     if (['1', '0/1', 'v', 'video', 'videos', 'movie', 'movies', '0/video', '0/videos', '0/movies', '0/all'].includes(lower)) {
       return '0/all';
     }
 
-    // Standard UPnP Audio Container Aliases
     if (['2', '0/2', 'a', 'audio', 'music', '0/audio', '0/music'].includes(lower)) {
       return '0/music';
     }
 
-    // Standard UPnP Image Container Aliases
     if (['3', '0/3', 'p', 'photo', 'photos', 'image', 'images', '0/photo', '0/photos'].includes(lower)) {
       return '0/photos';
     }
@@ -122,9 +112,6 @@ class MediaStore {
     return id;
   }
 
-  /**
-   * Scan media directory and build flat + hierarchical media stores
-   */
   async scanMedia(targetDirectory = this.rootPath) {
     if (this.isScanning) return;
     this.isScanning = true;
@@ -144,7 +131,6 @@ class MediaStore {
       const audioExts = ['.mp3', '.flac', '.wav', '.aac', '.ogg', '.m4a', '.wma', '.opus', '.alac'];
       const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff'];
 
-      // Recursive file traversal
       const scanDir = (dirPath, parentContainerId = '0/all') => {
         let entries = [];
         try {
@@ -157,20 +143,18 @@ class MediaStore {
           const fullPath = path.join(dirPath, entry.name);
 
           if (entry.isDirectory()) {
-            // Create container for subfolder
             const folderContainerId = `dir:${Buffer.from(fullPath).toString('hex')}`;
             if (!this.containers.has(folderContainerId)) {
               const folderContainer = {
                 id: folderContainerId,
                 parentId: parentContainerId,
-                title: `📁 ${entry.name}`,
+                title: entry.name,
                 upnpClass: 'object.container.storageFolder',
                 childCount: 0,
                 childrenIds: []
               };
               this.containers.set(folderContainerId, folderContainer);
 
-              // Add folder container to parent's children list
               const parentCont = this.containers.get(parentContainerId);
               if (parentCont && !parentCont.childrenIds.includes(folderContainerId)) {
                 parentCont.childrenIds.push(folderContainerId);
@@ -216,10 +200,8 @@ class MediaStore {
 
             this.items.set(itemId, itemObj);
 
-            // Add to Master "All Videos & Media" Container (0/all)
             this.containers.get('0/all').childrenIds.push(itemId);
 
-            // Categorize into Movies/Videos/TV Shows
             if (isVideo) {
               if (!this.containers.get('0/videos').childrenIds.includes(itemId)) {
                 this.containers.get('0/videos').childrenIds.push(itemId);
@@ -236,7 +218,6 @@ class MediaStore {
               this.containers.get('0/photos').childrenIds.push(itemId);
             }
 
-            // Also add to subfolder container if inside a subfolder
             if (parentContainerId !== '0/all' && this.containers.has(parentContainerId)) {
               this.containers.get(parentContainerId).childrenIds.push(itemId);
             }
@@ -246,7 +227,6 @@ class MediaStore {
 
       scanDir(this.rootPath, '0/all');
 
-      // Update child counts
       for (const [cId, container] of this.containers.entries()) {
         container.childCount = container.childrenIds.length;
       }
@@ -267,23 +247,17 @@ class MediaStore {
     }
   }
 
-  /**
-   * Get item or container by ID
-   */
   getObject(rawId) {
     if (!rawId) return { isContainer: true, data: this.containers.get('0') };
 
-    // 1. Direct item lookup
     if (this.items.has(rawId)) {
       return { isContainer: false, data: this.items.get(rawId) };
     }
 
-    // 2. Direct container lookup
     if (this.containers.has(rawId)) {
       return { isContainer: true, data: this.containers.get(rawId) };
     }
 
-    // 3. Resolve container ID aliases
     const resolvedId = this.resolveContainerId(rawId);
     if (this.containers.has(resolvedId)) {
       return { isContainer: true, data: this.containers.get(resolvedId) };
@@ -292,9 +266,6 @@ class MediaStore {
     return null;
   }
 
-  /**
-   * Get children of container
-   */
   getChildren(rawContainerId, startingIndex = 0, requestedCount = 0) {
     const containerId = this.resolveContainerId(rawContainerId);
     const container = this.containers.get(containerId);
@@ -302,10 +273,8 @@ class MediaStore {
 
     let children = [];
     if (containerId === '0') {
-      // Return top-level category containers
       children = container.childrenIds.map(id => this.containers.get(id)).filter(Boolean);
     } else {
-      // Return items or sub-containers
       children = container.childrenIds.map(id => {
         if (this.containers.has(id)) return this.containers.get(id);
         if (this.items.has(id)) return this.items.get(id);

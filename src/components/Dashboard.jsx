@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
   HardDrive, Wifi, QrCode, Tv, Folder, File, Film, Music, Image as ImageIcon, FileText, Archive,
-  Copy, Check, Server, Settings, Search, Upload, ArrowLeft, Grid, List, Play, ExternalLink, 
+  Copy, Check, Server, Settings, Search, Upload, ArrowLeft, Play, ExternalLink, 
   Download, RefreshCw, ChevronRight, Power, Shield
 } from 'lucide-react';
 
 export default function Dashboard({ networkInfo, onRefreshNetwork }) {
-  // Clipboard copy feedback
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedSmb, setCopiedSmb] = useState(false);
-  const [copiedFtp, setCopiedFtp] = useState(false);
-  const [copiedM3u, setCopiedM3u] = useState(false);
-  const [copiedStreamPath, setCopiedStreamPath] = useState(null);
-
   // Shared Directory Config State
   const [customPath, setCustomPath] = useState(networkInfo?.rootDirectory || '');
   const [savingPath, setSavingPath] = useState(false);
   const [pathMessage, setPathMessage] = useState('');
+
+  // Live Service Toggles State
+  const [services, setServices] = useState({ http: true, smb: true, ftp: true, dlna: true });
 
   // Integrated File Browser State
   const [currentPath, setCurrentPath] = useState('');
@@ -26,9 +22,8 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [viewMode, setViewMode] = useState('grid');
   
-  // Upload modal state
+  // Upload modal & player state
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedUploadFiles, setSelectedUploadFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -39,17 +34,45 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const port = networkInfo?.port || 3000;
   const hostname = networkInfo?.hostname || 'PC';
   const serverUrl = networkInfo?.serverUrl || `http://${primaryIp}:${port}`;
-  const smbPath = networkInfo?.smbPath || `\\\\${hostname}\\AiroSMB`;
+  const smbPath = networkInfo?.smbPath || `\\\\${hostname}\\AiroShare`;
   const ftpUrl = `ftp://${primaryIp}:2121`;
   const m3uUrl = `${serverUrl}/playlist.m3u`;
   const storage = networkInfo?.storage || { total: 0, free: 0, used: 0, percentUsed: 0 };
 
   const formatGb = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
 
-  const copyToClipboard = (text, setFn) => {
-    navigator.clipboard.writeText(text);
-    setFn(true);
-    setTimeout(() => setFn(false), 2000);
+  // Fetch Services Status
+  const fetchServicesStatus = async () => {
+    try {
+      const res = await fetch('/api/services/status');
+      const data = await res.json();
+      if (res.ok) {
+        setServices({
+          http: data.http?.enabled ?? true,
+          smb: data.smb?.enabled ?? true,
+          ftp: data.ftp?.enabled ?? true,
+          dlna: data.dlna?.enabled ?? true
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching services status:', err);
+    }
+  };
+
+  // Toggle live service ON or OFF
+  const toggleService = async (serviceName, targetState) => {
+    try {
+      const res = await fetch('/api/services/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service: serviceName, enable: targetState })
+      });
+      if (res.ok) {
+        setServices(prev => ({ ...prev, [serviceName]: targetState }));
+      }
+    } catch (err) {
+      console.error(`Error toggling service ${serviceName}:`, err);
+    }
   };
 
   // Fetch directory files
@@ -72,6 +95,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   };
 
   useEffect(() => {
+    fetchServicesStatus();
     fetchDirectory(networkInfo?.rootDirectory || '');
     if (networkInfo?.rootDirectory) setCustomPath(networkInfo.rootDirectory);
   }, [networkInfo]);
@@ -90,14 +114,14 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setPathMessage('✅ Directory updated successfully.');
+        setPathMessage('Directory updated successfully.');
         if (onRefreshNetwork) onRefreshNetwork();
         fetchDirectory(customPath.trim());
       } else {
-        setPathMessage(`❌ ${data.error}`);
+        setPathMessage(`Error: ${data.error}`);
       }
     } catch (err) {
-      setPathMessage('❌ Failed to update directory path.');
+      setPathMessage('Failed to update directory path.');
     } finally {
       setSavingPath(false);
     }
@@ -131,12 +155,12 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
 
   const getFileIcon = (category) => {
     switch (category) {
-      case 'video': return <Film size={18} />;
-      case 'audio': return <Music size={18} />;
-      case 'image': return <ImageIcon size={18} />;
-      case 'document': return <FileText size={18} />;
-      case 'archive': return <Archive size={18} />;
-      default: return <File size={18} />;
+      case 'video': return <Film size={16} />;
+      case 'audio': return <Music size={16} />;
+      case 'image': return <ImageIcon size={16} />;
+      case 'document': return <FileText size={16} />;
+      case 'archive': return <Archive size={16} />;
+      default: return <File size={16} />;
     }
   };
 
@@ -173,17 +197,18 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
 
           <div className="metric-item">
             <span className="metric-label">DLNA Engine</span>
-            <span className="metric-value" style={{ color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="status-dot"></span> Active
+            <span className="metric-value" style={{ color: services.dlna ? 'var(--accent-emerald)' : '#f87171', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="status-dot" style={{ background: services.dlna ? 'var(--accent-emerald)' : '#f87171' }}></span> 
+              {services.dlna ? 'Active' : 'Offline'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* 2. Network Addresses Connection Grid */}
+      {/* 2. Network Services Cards with Live Start/Stop Toggles */}
       <div className="grid-4">
         
-        {/* Web Access */}
+        {/* HTTP Web Server */}
         <div className="pro-card">
           <div className="card-header-clean">
             <span className="card-title-text">HTTP Web Server</span>
@@ -192,13 +217,16 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
           <div className="card-mono-value">
             {serverUrl}
           </div>
-          <button onClick={() => copyToClipboard(serverUrl, setCopiedUrl)} className="btn-pro-secondary w-full">
-            {copiedUrl ? <Check size={14} color="var(--accent-emerald)" /> : <Copy size={14} />}
-            {copiedUrl ? 'Copied' : 'Copy Web Link'}
+          <button 
+            onClick={() => toggleService('http', !services.http)} 
+            className="btn-pro-secondary w-full"
+            style={{ justifyContent: 'center', background: services.http ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.http ? '#f87171' : 'var(--accent-emerald)' }}
+          >
+            <Power size={13} /> {services.http ? 'Stop Service' : 'Start Service'}
           </button>
         </div>
 
-        {/* Windows SMB */}
+        {/* Windows SMB Share */}
         <div className="pro-card">
           <div className="card-header-clean">
             <span className="card-title-text">Windows SMB Share</span>
@@ -207,13 +235,16 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
           <div className="card-mono-value">
             {smbPath}
           </div>
-          <button onClick={() => copyToClipboard(smbPath, setCopiedSmb)} className="btn-pro-secondary w-full">
-            {copiedSmb ? <Check size={14} color="var(--accent-emerald)" /> : <Copy size={14} />}
-            {copiedSmb ? 'Copied' : 'Copy SMB Path'}
+          <button 
+            onClick={() => toggleService('smb', !services.smb)} 
+            className="btn-pro-secondary w-full"
+            style={{ justifyContent: 'center', background: services.smb ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.smb ? '#f87171' : 'var(--accent-emerald)' }}
+          >
+            <Power size={13} /> {services.smb ? 'Stop Service' : 'Start Service'}
           </button>
         </div>
 
-        {/* FTP Endpoint */}
+        {/* FTP Streaming */}
         <div className="pro-card">
           <div className="card-header-clean">
             <span className="card-title-text">FTP Streaming</span>
@@ -222,30 +253,36 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
           <div className="card-mono-value">
             {ftpUrl}
           </div>
-          <button onClick={() => copyToClipboard(ftpUrl, setCopiedFtp)} className="btn-pro-secondary w-full">
-            {copiedFtp ? <Check size={14} color="var(--accent-emerald)" /> : <Copy size={14} />}
-            {copiedFtp ? 'Copied' : 'Copy FTP Link'}
+          <button 
+            onClick={() => toggleService('ftp', !services.ftp)} 
+            className="btn-pro-secondary w-full"
+            style={{ justifyContent: 'center', background: services.ftp ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.ftp ? '#f87171' : 'var(--accent-emerald)' }}
+          >
+            <Power size={13} /> {services.ftp ? 'Stop Service' : 'Start Service'}
           </button>
         </div>
 
-        {/* M3U Stream Feed */}
+        {/* DLNA Broadcaster */}
         <div className="pro-card">
           <div className="card-header-clean">
-            <span className="card-title-text">VLC M3U Feed</span>
+            <span className="card-title-text">DLNA Broadcaster</span>
             <Film size={15} color="var(--accent-purple)" />
           </div>
           <div className="card-mono-value">
-            {m3uUrl}
+            UDP Port 1900
           </div>
-          <button onClick={() => copyToClipboard(m3uUrl, setCopiedM3u)} className="btn-pro-secondary w-full">
-            {copiedM3u ? <Check size={14} color="var(--accent-emerald)" /> : <Copy size={14} />}
-            {copiedM3u ? 'Copied' : 'Copy Playlist Link'}
+          <button 
+            onClick={() => toggleService('dlna', !services.dlna)} 
+            className="btn-pro-secondary w-full"
+            style={{ justifyContent: 'center', background: services.dlna ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.dlna ? '#f87171' : 'var(--accent-emerald)' }}
+          >
+            <Power size={13} /> {services.dlna ? 'Stop Service' : 'Start Service'}
           </button>
         </div>
 
       </div>
 
-      {/* 3. Core Shared Directory & Integrated File Browser Section */}
+      {/* 3. Core Shared Directory & Integrated File Browser Section (Strict List View Only) */}
       <div className="pro-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
         {/* Directory Switcher Bar */}
@@ -267,7 +304,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
             </form>
           </div>
           {pathMessage && (
-            <span style={{ fontSize: '0.82rem', color: pathMessage.startsWith('✅') ? 'var(--accent-emerald)' : '#f87171' }}>
+            <span style={{ fontSize: '0.82rem', color: pathMessage.startsWith('Directory') ? 'var(--accent-emerald)' : '#f87171' }}>
               {pathMessage}
             </span>
           )}
@@ -332,22 +369,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               ))}
             </div>
 
-            {/* View Switcher */}
-            <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-input)', padding: '3px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-              <button 
-                style={{ background: viewMode === 'grid' ? 'rgba(255,255,255,0.08)' : 'transparent', color: viewMode === 'grid' ? 'var(--text-main)' : 'var(--text-muted)', border: 'none', padding: '4px 6px', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid size={14} />
-              </button>
-              <button 
-                style={{ background: viewMode === 'list' ? 'rgba(255,255,255,0.08)' : 'transparent', color: viewMode === 'list' ? 'var(--text-main)' : 'var(--text-muted)', border: 'none', padding: '4px 6px', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
-                onClick={() => setViewMode('list')}
-              >
-                <List size={14} />
-              </button>
-            </div>
-
             <button className="btn-pro-secondary" onClick={() => fetchDirectory(currentPath)} style={{ padding: '6px 10px' }}>
               <RefreshCw size={14} className={loadingFiles ? 'spin' : ''} />
             </button>
@@ -360,32 +381,40 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
 
         </div>
 
-        {/* Directory Files Output */}
+        {/* Directory Files Output (Strict List View Only) */}
         {loadingFiles ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
             <RefreshCw size={24} className="spin" style={{ marginBottom: '8px', color: 'var(--accent-cyan)' }} />
             <p>Loading directory content...</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
             
-            {/* Subfolders Grid */}
+            {/* Subfolders List */}
             {directories.length > 0 && selectedCategory === 'all' && !searchQuery && (
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '8px' }}>
                   Folders ({directories.length})
                 </span>
-                <div className="grid-4">
+                <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                   {directories.map((dir, idx) => (
                     <div 
                       key={idx} 
-                      className="file-card"
                       onClick={() => fetchDirectory(dir.path)}
-                      style={{ padding: '10px 12px', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        padding: '10px 14px', 
+                        borderBottom: idx < directories.length - 1 ? '1px solid var(--border-color)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'var(--transition)'
+                      }}
+                      className="list-row-hover"
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <Folder size={18} color="var(--accent-blue)" />
-                        <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dir.name}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)' }}>{dir.name}</span>
                       </div>
                       <ChevronRight size={14} color="var(--text-muted)" />
                     </div>
@@ -394,7 +423,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               </div>
             )}
 
-            {/* Files Grid / List */}
+            {/* Files List View */}
             <div>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '8px' }}>
                 Files ({filteredFiles.length})
@@ -404,70 +433,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                 <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
                   No matching files in this directory.
                 </div>
-              ) : viewMode === 'grid' ? (
-                <div className="grid-4">
-                  {filteredFiles.map((file, idx) => {
-                    const absoluteStreamUrl = `http://${primaryIp}:${port}${file.streamUrl}`;
-                    const vlcUrl = `vlc://${absoluteStreamUrl}`;
-
-                    return (
-                      <div key={idx} className="file-card">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-cyan)' }}>
-                            {getFileIcon(file.category)}
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                              {file.ext ? file.ext.replace('.', '') : 'FILE'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={file.name}>
-                          {file.name}
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          <span>{(file.size / (1024 * 1024)).toFixed(1)} MB</span>
-                          <span>{new Date(file.modified).toLocaleDateString()}</span>
-                        </div>
-
-                        {/* Action buttons */}
-                        <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-                          {(file.category === 'video' || file.category === 'audio') && (
-                            <button 
-                              className="btn-pro-secondary"
-                              style={{ padding: '4px 8px', fontSize: '0.75rem', flex: 1, justifyContent: 'center' }}
-                              onClick={() => setActiveMediaFile(file)}
-                              title="Play in Browser"
-                            >
-                              <Play size={13} /> Play
-                            </button>
-                          )}
-
-                          <a 
-                            href={vlcUrl}
-                            className="btn-pro-secondary" 
-                            style={{ padding: '4px 8px', fontSize: '0.75rem', textDecoration: 'none' }}
-                            title="Open in VLC"
-                          >
-                            <ExternalLink size={13} /> VLC
-                          </a>
-
-                          <a 
-                            href={file.downloadUrl}
-                            className="btn-pro-secondary"
-                            style={{ padding: '4px 8px', fontSize: '0.75rem', textDecoration: 'none' }}
-                            title="Download"
-                          >
-                            <Download size={13} />
-                          </a>
-                        </div>
-
-                      </div>
-                    );
-                  })}
-                </div>
               ) : (
-                /* List View */
                 <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                   {filteredFiles.map((file, idx) => {
                     const absoluteStreamUrl = `http://${primaryIp}:${port}${file.streamUrl}`;
@@ -484,20 +450,21 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                           borderBottom: idx < filteredFiles.length - 1 ? '1px solid var(--border-color)' : 'none',
                           gap: '12px'
                         }}
+                        className="list-row-hover"
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, overflow: 'hidden' }}>
                           <div style={{ color: 'var(--accent-cyan)' }}>{getFileIcon(file.category)}</div>
                           <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</span>
                         </div>
 
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', width: '120px' }}>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', width: '100px' }}>
                           {(file.size / (1024 * 1024)).toFixed(1)} MB
                         </div>
 
                         <div style={{ display: 'flex', gap: '6px' }}>
                           {(file.category === 'video' || file.category === 'audio') && (
                             <button className="btn-pro-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setActiveMediaFile(file)}>
-                              <Play size={12} /> Stream
+                              <Play size={12} /> Play
                             </button>
                           )}
                           <a href={vlcUrl} className="btn-pro-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', textDecoration: 'none' }}>
@@ -514,62 +481,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               )}
             </div>
 
-          </div>
-        )}
-
-      </div>
-
-      {/* 4. Active Network Engines Summary & QR Code Grid */}
-      <div className="grid-2">
-        
-        {/* Active Engines List */}
-        <div className="pro-card">
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '12px' }}>
-            Active Network Engines
-          </span>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-input)', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Wifi size={14} color="var(--accent-cyan)" />
-                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>DLNA / UPnP Media Broadcaster</span>
-              </div>
-              <span className="status-pill status-active" style={{ fontSize: '0.72rem' }}>UDP 1900</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-input)', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Server size={14} color="var(--accent-blue)" />
-                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Windows SMB Engine</span>
-              </div>
-              <span className="status-pill status-active" style={{ fontSize: '0.72rem' }}>Port 4450</span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-input)', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Tv size={14} color="var(--accent-emerald)" />
-                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>FTP High-Speed Streaming</span>
-              </div>
-              <span className="status-pill status-active" style={{ fontSize: '0.72rem' }}>Port 2121</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile QR Pairing */}
-        {networkInfo?.qrDataUrl && (
-          <div className="pro-card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ background: '#fff', padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
-              <img src={networkInfo.qrDataUrl} alt="Pairing QR" style={{ width: '80px', height: '80px', display: 'block' }} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.9rem', fontWeight: 600, display: 'block', marginBottom: '2px' }}>Mobile Wi-Fi Pairing</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
-                Scan to open dashboard directly on phone or tablet.
-              </span>
-              <button className="btn-pro-secondary" style={{ padding: '3px 8px', fontSize: '0.75rem' }} onClick={() => copyToClipboard(serverUrl, setCopiedUrl)}>
-                <QrCode size={12} /> Copy URL
-              </button>
-            </div>
           </div>
         )}
 
@@ -614,7 +525,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                 {activeMediaFile.name}
               </span>
               <button className="btn-pro-secondary" style={{ padding: '2px 8px', fontSize: '0.78rem' }} onClick={() => setActiveMediaFile(null)}>
-                ✕ Close
+                Close
               </button>
             </div>
 

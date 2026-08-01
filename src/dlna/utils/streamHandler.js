@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import mime from 'mime-types';
+import clientTracker from '../../utils/clientTracker.js';
 
 // High-performance streaming buffer: 1 MB chunks to saturate Gigabit LAN
 const STREAM_HIGH_WATER_MARK = 1024 * 1024;
@@ -23,8 +24,18 @@ export function handleMediaStream(req, res) {
     const fileSize = stat.size;
     const range = req.headers.range;
     const contentType = mime.lookup(filePath) || 'video/mp4';
+    const fileName = path.basename(filePath);
 
-    console.log(`[DLNA Stream] ${req.ip} -> Playing "${path.basename(filePath)}" (${range ? 'Range: ' + range : 'Full Play'})`);
+    // Track active client
+    const userAgent = req.headers['user-agent'] || 'Media Player';
+    clientTracker.logActivity({
+      ip: req.ip || req.socket?.remoteAddress,
+      device: userAgent.includes('VLC') ? 'VLC Media Player' : userAgent,
+      protocol: 'DLNA / HTTP Stream',
+      activity: `Streaming "${fileName}"`
+    });
+
+    console.log(`[DLNA Stream] ${req.ip} -> Playing "${fileName}" (${range ? 'Range: ' + range : 'Full Play'})`);
 
     // Optimize TCP socket for zero latency & high throughput
     if (req.socket) {

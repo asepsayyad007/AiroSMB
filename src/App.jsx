@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Radio, QrCode, Settings as SettingsIcon, Wifi } from 'lucide-react';
+import { LayoutDashboard, QrCode, Settings as SettingsIcon, Wifi, Users } from 'lucide-react';
 import Dashboard from './components/Dashboard';
+import ActiveClients from './components/ActiveClients';
 import Settings from './components/Settings';
+import AiroShareIcon from './components/AiroShareIcon';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -34,18 +36,18 @@ export default function App() {
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         
-        {/* Brand Header */}
+        {/* Brand Header with AiroShare Icon */}
         <div className="brand-header">
           <div className="brand-icon-wrapper">
-            <Radio size={16} />
+            <AiroShareIcon size={34} />
           </div>
           <div>
-            <h1 className="brand-title">AiroSMB</h1>
-            <p className="brand-subtitle">Home Server & Media</p>
+            <h1 className="brand-title">AiroShare</h1>
+            <p className="brand-subtitle">Media & File Server</p>
           </div>
         </div>
 
-        {/* Navigation Items (Only Dashboard & Settings) */}
+        {/* Navigation Items */}
         <ul className="nav-list">
           <li>
             <button 
@@ -54,6 +56,16 @@ export default function App() {
             >
               <LayoutDashboard className="icon" />
               <span>Dashboard</span>
+            </button>
+          </li>
+
+          <li>
+            <button 
+              className={`nav-item-btn ${activeTab === 'clients' ? 'active' : ''}`}
+              onClick={() => setActiveTab('clients')}
+            >
+              <Users className="icon" />
+              <span>Active Clients</span>
             </button>
           </li>
 
@@ -88,7 +100,8 @@ export default function App() {
         <header className="top-bar">
           <div className="top-title-area">
             <h2>
-              {activeTab === 'dashboard' && 'Server Overview & File Explorer'}
+              {activeTab === 'dashboard' && 'Server Overview & Shared Files'}
+              {activeTab === 'clients' && 'Active Connected Clients & Devices'}
               {activeTab === 'settings' && 'Server Settings & Port Configuration'}
             </h2>
           </div>
@@ -113,6 +126,10 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'clients' && (
+            <ActiveClients />
+          )}
+
           {activeTab === 'settings' && (
             <Settings 
               networkInfo={networkInfo}
@@ -127,6 +144,9 @@ export default function App() {
       {showTopQrModal && networkInfo?.qrDataUrl && (
         <div className="modal-overlay" onClick={() => setShowTopQrModal(false)}>
           <div className="modal-card" style={{ maxWidth: '340px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ marginBottom: '10px' }}>
+              <AiroShareIcon size={44} />
+            </div>
             <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Mobile Connection</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
               Scan QR code using smartphone camera to open dashboard on Wi-Fi:
@@ -134,7 +154,7 @@ export default function App() {
             <div style={{ background: '#fff', padding: '8px', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '12px' }}>
               <img src={networkInfo.qrDataUrl} alt="Pairing QR Code" style={{ width: '160px', height: '160px', display: 'block' }} />
             </div>
-            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem', color: 'var(--accent-cyan)', marginBottom: '14px' }}>
+            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem', color: 'var(--accent-orange)', marginBottom: '14px' }}>
               {serverUrl}
             </p>
             <button className="btn-pro-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowTopQrModal(false)}>

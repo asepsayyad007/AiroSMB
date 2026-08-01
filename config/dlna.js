@@ -5,15 +5,15 @@ import os from 'os';
  * DLNA & UPnP AV Media Server Configuration
  */
 const dlnaConfig = {
-  friendlyName: 'AiroSMB Media Server',
-  serverName: 'AiroSMB Plex & Media Engine',
+  friendlyName: 'AiroShare Media Server',
+  serverName: 'AiroShare Media Engine',
   manufacturer: 'AiroShare',
   manufacturerUrl: 'http://localhost:3000',
-  modelName: 'AiroSMB',
+  modelName: 'AiroShare',
   modelDescription: 'High Performance PC Home Media & File Sharing Server',
   modelNumber: '1.1.0',
-  serialNumber: 'AIROSMB-2026-001',
-  uuid: 'uuid:airosmb-mediaserver-1000-8000-000000000001',
+  serialNumber: 'AIROSHARE-2026-001',
+  uuid: 'uuid:airoshare-mediaserver-1000-8000-000000000001',
   
   port: process.env.PORT || 3000,
   ssdpPort: 1900,
@@ -25,7 +25,7 @@ const dlnaConfig = {
 
   mediaRoot: 'C:\\Users\\aseps\\Downloads\\Video',
   
-  // Supported MIME types map for UPnP protocolInfo (MUST start with http-get:*:)
+  // Supported MIME types map for UPnP protocolInfo
   mimeProtocolInfoMap: {
     '.mp4': 'http-get:*:video/mp4:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
     '.mkv': 'http-get:*:video/x-matroska:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',

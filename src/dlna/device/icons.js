@@ -1,14 +1,21 @@
+import fs from 'fs';
+import path from 'path';
+
+// Read AiroShare.svg file
+const svgPath = path.join(process.cwd(), 'AiroShare.svg');
+let svgContent = '';
+if (fs.existsSync(svgPath)) {
+  svgContent = fs.readFileSync(svgPath, 'utf8');
+}
+
 /**
- * Icon generator / handler for UPnP device icons (/icon-64.png, /icon-128.png, /icon-256.png)
+ * Returns UPnP Device Icon buffer
  */
-
-// Valid PNG Header + IHDR + IDAT + IEND buffer representing a clean cyan/blue AiroSMB icon
-const base64Png64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAACJSURBVHic7c4BDQAACAMg+5d2ijEZmIDcsw5ERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERERET0XgGf1AFT2L2mFAAAAABJRU5ErkJggg==';
-
-const pngBuffer = Buffer.from(base64Png64, 'base64');
-
 export function getDeviceIcon(size) {
-  return pngBuffer;
+  if (fs.existsSync(svgPath)) {
+    return fs.readFileSync(svgPath);
+  }
+  return Buffer.from(svgContent);
 }
 
 export default getDeviceIcon;

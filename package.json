@@ -1,8 +1,8 @@
 {
-  "name": "airo-smb",
+  "name": "airo-share",
   "version": "1.1.0",
   "type": "module",
-  "description": "Modern Home Server Web App for PC File Sharing and VLC/TV Media Streaming",
+  "description": "High Performance PC Media Server & Local File Engine",
   "main": "server.js",
   "scripts": {
     "dev": "vite",

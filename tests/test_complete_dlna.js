@@ -43,7 +43,7 @@ ${soapBody}
 
 async function verifyCompleteDlna() {
   console.log('\n==================================================');
-  console.log('📡 Verifying Complete DLNA / UPnP AV Spec Suite');
+  console.log('Verifying Complete DLNA / UPnP AV Spec Suite');
   console.log('==================================================\n');
 
   let passed = 0;
@@ -52,22 +52,22 @@ async function verifyCompleteDlna() {
   try {
     const res = await getUrl('/dlna/description.xml');
     if (res.statusCode === 200 && res.data.includes('AiroSMB Media Server') && res.data.includes('urn:schemas-upnp-org:device:MediaServer:1')) {
-      console.log('✅ TEST 1 PASSED: Device Description XML (/dlna/description.xml)');
+      console.log('[PASS] TEST 1: Device Description XML (/dlna/description.xml)');
       passed++;
     }
   } catch (err) {
-    console.error('❌ TEST 1 FAILED:', err.message);
+    console.error('[FAIL] TEST 1:', err.message);
   }
 
   // Test 2: ContentDirectory SCPD XML
   try {
     const res = await getUrl('/dlna/scpd/contentDirectory.xml');
     if (res.statusCode === 200 && res.data.includes('GetSearchCapabilities') && res.data.includes('Browse')) {
-      console.log('✅ TEST 2 PASSED: ContentDirectory SCPD XML (/dlna/scpd/contentDirectory.xml)');
+      console.log('[PASS] TEST 2: ContentDirectory SCPD XML (/dlna/scpd/contentDirectory.xml)');
       passed++;
     }
   } catch (err) {
-    console.error('❌ TEST 2 FAILED:', err.message);
+    console.error('[FAIL] TEST 2:', err.message);
   }
 
   // Test 3: SOAP Browse Root Container (ObjectID = 0)
@@ -75,11 +75,11 @@ async function verifyCompleteDlna() {
     const body = `<ObjectID>0</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>0</StartingIndex><RequestedCount>0</RequestedCount><SortCriteria></SortCriteria>`;
     const res = await postSoap('/dlna/control/contentDirectory', 'urn:schemas-upnp-org:service:ContentDirectory:1', 'Browse', body);
     if (res.statusCode === 200 && res.data.includes('BrowseResponse') && res.data.includes('DIDL-Lite')) {
-      console.log('✅ TEST 3 PASSED: SOAP Browse Root Container (ObjectID = 0)');
+      console.log('[PASS] TEST 3: SOAP Browse Root Container (ObjectID = 0)');
       passed++;
     }
   } catch (err) {
-    console.error('❌ TEST 3 FAILED:', err.message);
+    console.error('[FAIL] TEST 3:', err.message);
   }
 
   // Test 4: SOAP Browse Movies Container (ObjectID = 0/movies)
@@ -87,37 +87,37 @@ async function verifyCompleteDlna() {
     const body = `<ObjectID>0/movies</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>0</StartingIndex><RequestedCount>0</RequestedCount><SortCriteria></SortCriteria>`;
     const res = await postSoap('/dlna/control/contentDirectory', 'urn:schemas-upnp-org:service:ContentDirectory:1', 'Browse', body);
     if (res.statusCode === 200 && res.data.includes('BrowseResponse')) {
-      console.log('✅ TEST 4 PASSED: SOAP Browse Movies Container (ObjectID = 0/movies)');
+      console.log('[PASS] TEST 4: SOAP Browse Movies Container (ObjectID = 0/movies)');
       passed++;
     }
   } catch (err) {
-    console.error('❌ TEST 4 FAILED:', err.message);
+    console.error('[FAIL] TEST 4:', err.message);
   }
 
   // Test 5: Device Icon PNG
   try {
     const res = await getUrl('/icon-64.png');
     if (res.statusCode === 200 && res.headers['content-type'] === 'image/png') {
-      console.log('✅ TEST 5 PASSED: UPnP Device Icon PNG (/icon-64.png)');
+      console.log('[PASS] TEST 5: UPnP Device Icon PNG (/icon-64.png)');
       passed++;
     }
   } catch (err) {
-    console.error('❌ TEST 5 FAILED:', err.message);
+    console.error('[FAIL] TEST 5:', err.message);
   }
 
   // Test 6: Presentation Page HTML
   try {
     const res = await getUrl('/dlna/presentation');
     if (res.statusCode === 200 && res.data.includes('AiroSMB DLNA')) {
-      console.log('✅ TEST 6 PASSED: DLNA Presentation HTML Dashboard (/dlna/presentation)');
+      console.log('[PASS] TEST 6: DLNA Presentation HTML Dashboard (/dlna/presentation)');
       passed++;
     }
   } catch (err) {
-    console.error('❌ TEST 6 FAILED:', err.message);
+    console.error('[FAIL] TEST 6:', err.message);
   }
 
   console.log('\n==================================================');
-  console.log(`🎉 COMPLETE DLNA SPEC VERIFICATION: ${passed}/6 PASSED`);
+  console.log(`COMPLETE DLNA SPEC VERIFICATION: ${passed}/6 PASSED`);
   console.log('==================================================\n');
 }
 

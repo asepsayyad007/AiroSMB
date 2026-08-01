@@ -67,20 +67,46 @@ if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
 }
 
-// Set up default initial directory (Prioritizing Downloads/videos)
-let rootDirectory = path.join(os.homedir(), 'Downloads', 'videos');
+import clientTracker from './src/utils/clientTracker.js';
+
+// Set up default initial directory (Prioritizing Downloads/Video)
+const defaultVideoDir = path.join(os.homedir(), 'Downloads', 'Video');
+const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'videos');
+const defaultDownloadsDir = path.join(os.homedir(), 'Downloads');
+
+let rootDirectory = fs.existsSync(defaultVideoDir) ? defaultVideoDir 
+                  : (fs.existsSync(defaultVideosDir) ? defaultVideosDir 
+                  : (fs.existsSync(defaultDownloadsDir) ? defaultDownloadsDir : os.homedir()));
+
 if (!fs.existsSync(rootDirectory)) {
   try {
     fs.mkdirSync(rootDirectory, { recursive: true });
   } catch (e) {
-    rootDirectory = path.join(os.homedir(), 'Downloads');
+    rootDirectory = os.homedir();
   }
-}
-if (!fs.existsSync(rootDirectory)) {
-  rootDirectory = os.homedir();
 }
 
 console.log(`[AiroSMB] Root Shared Directory initialized to: ${rootDirectory}`);
+
+// Track Active Client Connections
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/assets') && !req.path.startsWith('/api/clients')) {
+    const userAgent = req.headers['user-agent'] || 'Generic Client';
+    const clientIp = req.ip || req.socket?.remoteAddress || 'Unknown';
+    clientTracker.logActivity({
+      ip: clientIp,
+      device: userAgent.includes('VLC') ? 'VLC Player' : (userAgent.includes('Mozilla') ? 'Web Browser' : userAgent),
+      protocol: req.path.startsWith('/dlna') ? 'DLNA / UPnP' : 'HTTP API',
+      activity: `${req.method} ${req.path}`
+    });
+  }
+  next();
+});
+
+// API: Get Active Connected Clients
+app.get('/api/clients', (req, res) => {
+  res.json({ clients: clientTracker.getActiveClients() });
+});
 
 // Configure Multer for File Uploads
 const storage = multer.diskStorage({
@@ -404,7 +430,7 @@ app.get('/api/network/info', async (req, res) => {
     const ips = getLocalIpAddresses();
     const primaryIp = ips.length > 0 ? ips[0].address : 'localhost';
     const serverUrl = `http://${primaryIp}:${PORT}`;
-    const smbPath = `\\\\${os.hostname()}\\AiroSMB`;
+    const smbPath = `\\\\${os.hostname()}\\AiroShare`;
 
     // Generate pairing QR code URL
     const qrDataUrl = await QRCode.toDataURL(serverUrl, { margin: 1, width: 300 });
@@ -633,20 +659,20 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n==================================================`);
-  console.log(`🚀 AiroSMB Home Server running on port ${PORT}`);
-  console.log(`🌐 Local access: http://localhost:${PORT}`);
+  console.log(`AiroShare Home Server running on port ${PORT}`);
+  console.log(`Local access: http://localhost:${PORT}`);
   const ips = getLocalIpAddresses();
   const primaryIp = ips.length > 0 ? ips[0].address : '127.0.0.1';
 
   ips.forEach(ip => {
-    console.log(`📱 LAN Network stream: http://${ip.address}:${PORT}`);
+    console.log(`LAN Network stream: http://${ip.address}:${PORT}`);
   });
 
   // Start DLNA SSDP Discovery Server & Scan Media Store
   try {
     await mediaStore.scanMedia(rootDirectory);
     ssdpServer.start(primaryIp, PORT);
-    console.log(`📡 UPnP DLNA AV Server Active at http://${primaryIp}:${PORT}/dlna/description.xml`);
+    console.log(`UPnP DLNA AV Server Active at http://${primaryIp}:${PORT}/dlna/description.xml`);
   } catch (err) {
     console.warn('[DLNA Startup Notice]', err.message);
   }

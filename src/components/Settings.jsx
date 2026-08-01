@@ -4,7 +4,7 @@ import { Settings as SettingsIcon, Server, Shield, HardDrive, Wifi, Copy, Check,
 export default function Settings({ networkInfo, onRefreshNetwork }) {
   const [services, setServices] = useState({ http: true, smb: true, ftp: true, dlna: true });
   const [smbStatus, setSmbStatus] = useState(null);
-  const [sharedPath, setSharedPath] = useState(networkInfo?.rootDirectory || 'C:\\Users\\aseps\\Downloads');
+  const [sharedPath, setSharedPath] = useState(networkInfo?.rootDirectory || 'C:\\Users\\aseps\\Downloads\\Video');
   const [smbPortInput, setSmbPortInput] = useState(4450);
   const [savingPath, setSavingPath] = useState(false);
   const [savingSmb, setSavingSmb] = useState(false);
@@ -74,13 +74,13 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMsgPath('✅ Shared directory updated successfully.');
+        setMsgPath('Shared directory updated successfully.');
         if (onRefreshNetwork) onRefreshNetwork();
       } else {
-        setMsgPath(`❌ ${data.error}`);
+        setMsgPath(`Error: ${data.error}`);
       }
     } catch (err) {
-      setMsgPath('❌ Error updating path.');
+      setMsgPath('Error updating path.');
     } finally {
       setSavingPath(false);
     }
@@ -98,13 +98,13 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setMsgSmb('✅ SMB Engine restarted on new port.');
+        setMsgSmb('SMB Engine restarted on new port.');
         fetchSmbStatus();
       } else {
-        setMsgSmb(`❌ ${data.error}`);
+        setMsgSmb(`Error: ${data.error}`);
       }
     } catch (err) {
-      setMsgSmb('❌ Error updating SMB port.');
+      setMsgSmb('Error updating SMB port.');
     } finally {
       setSavingSmb(false);
     }
@@ -268,7 +268,7 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
           </button>
         </div>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-          Run in Administrator PowerShell to allow AiroSMB to bind to default Port 445: <code style={{ color: 'var(--accent-cyan)' }}>Stop-Service LanmanServer -Force; Set-Service LanmanServer -StartupType Disabled</code>
+          Run in Administrator PowerShell to allow AiroShare to bind to default Port 445: <code style={{ color: 'var(--accent-orange)' }}>Stop-Service LanmanServer -Force; Set-Service LanmanServer -StartupType Disabled</code>
         </p>
       </div>
 
