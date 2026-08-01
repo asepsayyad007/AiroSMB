@@ -67,10 +67,14 @@ if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
 }
 
-// Set up default initial directory (User specified C:\Users\aseps\Downloads)
-let rootDirectory = 'C:\\Users\\aseps\\Downloads';
+// Set up default initial directory (Prioritizing Downloads/videos)
+let rootDirectory = path.join(os.homedir(), 'Downloads', 'videos');
 if (!fs.existsSync(rootDirectory)) {
-  rootDirectory = path.join(os.homedir(), 'Downloads');
+  try {
+    fs.mkdirSync(rootDirectory, { recursive: true });
+  } catch (e) {
+    rootDirectory = path.join(os.homedir(), 'Downloads');
+  }
 }
 if (!fs.existsSync(rootDirectory)) {
   rootDirectory = os.homedir();

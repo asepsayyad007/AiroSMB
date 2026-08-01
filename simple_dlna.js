@@ -7,8 +7,12 @@ import ssdpServer from './src/dlna/ssdp/ssdpServer.js';
 import dlnaRouter from './src/dlna/index.js';
 import mime from 'mime-types';
 
-const args = process.argv.slice(2);
-const mediaDir = args[0] ? path.resolve(args[0]) : 'C:\\Users\\aseps\\Downloads';
+const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'videos');
+if (!fs.existsSync(defaultVideosDir)) {
+  try { fs.mkdirSync(defaultVideosDir, { recursive: true }); } catch (e) {}
+}
+
+const mediaDir = args[0] ? path.resolve(args[0]) : (fs.existsSync(defaultVideosDir) ? defaultVideosDir : path.join(os.homedir(), 'Downloads'));
 const PORT = parseInt(args[1], 10) || 3000;
 
 if (!fs.existsSync(mediaDir)) {

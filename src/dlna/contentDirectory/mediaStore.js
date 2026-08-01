@@ -89,7 +89,23 @@ class MediaStore {
       this.initContainers();
       this.items.clear();
 
-      const files = fs.readdirSync(this.rootPath, { withFileTypes: true });
+      const getFilesRecursively = (dir) => {
+        let results = [];
+        try {
+          const list = fs.readdirSync(dir, { withFileTypes: true });
+          for (const item of list) {
+            const fullPath = path.join(dir, item.name);
+            if (item.isDirectory()) {
+              results = results.concat(getFilesRecursively(fullPath));
+            } else if (item.isFile()) {
+              results.push({ name: item.name, fullPath });
+            }
+          }
+        } catch (e) {}
+        return results;
+      };
+
+      const fileEntries = getFilesRecursively(this.rootPath);
 
       let moviesCount = 0;
       let tvShowsCount = 0;
@@ -97,65 +113,63 @@ class MediaStore {
       let musicCount = 0;
       let photosCount = 0;
 
-      for (const entry of files) {
-        if (entry.isFile()) {
-          const fullPath = path.join(this.rootPath, entry.name);
-          const ext = path.extname(entry.name).toLowerCase();
-          const mimeType = mime.lookup(entry.name) || 'application/octet-stream';
-          let stat = null;
-          try {
-            stat = fs.statSync(fullPath);
-          } catch (e) {
-            continue;
+      for (const entry of fileEntries) {
+        const fullPath = entry.fullPath;
+        const ext = path.extname(entry.name).toLowerCase();
+        const mimeType = mime.lookup(entry.name) || 'application/octet-stream';
+        let stat = null;
+        try {
+          stat = fs.statSync(fullPath);
+        } catch (e) {
+          continue;
+        }
+
+        const itemId = Buffer.from(fullPath).toString('hex');
+        const protocolInfo = dlnaConfig.mimeProtocolInfoMap[ext] || `http-get:*:${mimeType}:*`;
+
+        let containerId = null;
+        let upnpClass = 'object.item';
+
+        // Determine UPnP Class & Container
+        if (['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.m4v', '.ts'].includes(ext)) {
+          upnpClass = 'object.item.videoItem.movie';
+          // Simple heuristic for Movies vs TV Shows vs Videos
+          if (/s\d{1,2}e\d{1,2}/i.test(entry.name)) {
+            containerId = '0/tvshows';
+            tvShowsCount++;
+          } else if (stat.size > 200 * 1024 * 1024) {
+            containerId = '0/movies';
+            moviesCount++;
+          } else {
+            containerId = '0/videos';
+            videosCount++;
           }
+        } else if (['.mp3', '.flac', '.wav', '.aac', '.ogg', '.m4a', '.wma'].includes(ext)) {
+          upnpClass = 'object.item.audioItem.musicTrack';
+          containerId = '0/music';
+          musicCount++;
+        } else if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext)) {
+          upnpClass = 'object.item.imageItem.photo';
+          containerId = '0/photos';
+          photosCount++;
+        }
 
-          const itemId = Buffer.from(fullPath).toString('hex');
-          const protocolInfo = dlnaConfig.mimeProtocolInfoMap[ext] || `http-get:*:${mimeType}:*`;
+        if (containerId) {
+          const itemObj = {
+            id: itemId,
+            parentId: containerId,
+            title: entry.name,
+            fullPath,
+            sizeBytes: stat.size,
+            modifiedTime: stat.mtime,
+            mimeType,
+            ext,
+            upnpClass,
+            protocolInfo
+          };
 
-          let containerId = null;
-          let upnpClass = 'object.item';
-
-          // Determine UPnP Class & Container
-          if (['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv'].includes(ext)) {
-            upnpClass = 'object.item.videoItem.movie';
-            // Simple heuristic for Movies vs TV Shows vs Videos
-            if (/s\d{1,2}e\d{1,2}/i.test(entry.name)) {
-              containerId = '0/tvshows';
-              tvShowsCount++;
-            } else if (stat.size > 200 * 1024 * 1024) {
-              containerId = '0/movies';
-              moviesCount++;
-            } else {
-              containerId = '0/videos';
-              videosCount++;
-            }
-          } else if (['.mp3', '.flac', '.wav', '.aac', '.ogg', '.m4a'].includes(ext)) {
-            upnpClass = 'object.item.audioItem.musicTrack';
-            containerId = '0/music';
-            musicCount++;
-          } else if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
-            upnpClass = 'object.item.imageItem.photo';
-            containerId = '0/photos';
-            photosCount++;
-          }
-
-          if (containerId) {
-            const itemObj = {
-              id: itemId,
-              parentId: containerId,
-              title: entry.name,
-              fullPath,
-              sizeBytes: stat.size,
-              modifiedTime: stat.mtime,
-              mimeType,
-              ext,
-              upnpClass,
-              protocolInfo
-            };
-
-            this.items.set(itemId, itemObj);
-            this.containers.get(containerId).childrenIds.push(itemId);
-          }
+          this.items.set(itemId, itemObj);
+          this.containers.get(containerId).childrenIds.push(itemId);
         }
       }
 
