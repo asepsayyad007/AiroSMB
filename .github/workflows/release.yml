@@ -1,0 +1,46 @@
+name: Build & Release AiroShare
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on version tag pushes, e.g., v1.2.0
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release AiroShare Windows Executables
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build React Web App
+        run: npm run build
+
+      - name: Build Standalone & Installer Executables
+        run: npm run dist:all
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release & Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-electron/AiroShare *.exe
+            dist-electron/AiroShare Setup *.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
