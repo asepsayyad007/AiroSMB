@@ -1,6 +1,6 @@
 import http from 'http';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://127.0.0.1:3000';
 
 function postJson(path, body) {
   return new Promise((resolve, reject) => {

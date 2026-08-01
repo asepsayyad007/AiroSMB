@@ -1,7 +1,7 @@
 import net from 'net';
 import http from 'http';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://127.0.0.1:3000';
 const SMB_PORT = 4450;
 
 function makeRequest(path, headers = {}) {

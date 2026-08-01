@@ -59,13 +59,24 @@ function findFreePort(start) {
   });
 }
 
+import getDeviceIcon from './src/dlna/device/icons.js';
+import cors from 'cors';
+
 // --- Express App Setup ---
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use(express.text({ type: ['text/xml', 'application/xml'] }));
 
 // Mount DLNA UPnP Router
 app.use('/dlna', dlnaRouter);
+
+// UPnP Device Icons (required by the UPnP spec for device recognition)
+app.get('/icon-:size.png', (req, res) => {
+  const size = parseInt(req.params.size, 10);
+  res.setHeader('Content-Type', 'image/png');
+  res.send(getDeviceIcon(size));
+});
 
 // Media Streaming Endpoint with HTTP 206 Range seeking support
 app.get('/api/files/stream', (req, res) => {
