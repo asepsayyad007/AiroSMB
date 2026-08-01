@@ -529,78 +529,10 @@ app.get('/api/files/browse', (req, res) => {
   }
 });
 
-// High-performance streaming buffer: 1 MB chunks (1024 * 1024) to saturate Gigabit LAN
-const STREAM_HIGH_WATER_MARK = 1024 * 1024;
+import handleMediaStream from './src/dlna/utils/streamHandler.js';
 
 // API: Stream File with HTTP 206 Partial Content (Gigabit & DLNA Optimized)
-app.get('/api/files/stream', (req, res) => {
-  try {
-    const filePath = req.query.path ? decodeURIComponent(req.query.path) : null;
-    if (!filePath || !fs.existsSync(filePath)) {
-      return res.status(404).send('File not found');
-    }
-
-    const stat = fs.statSync(filePath);
-    const fileSize = stat.size;
-    const range = req.headers.range;
-    const contentType = mime.lookup(filePath) || 'video/mp4';
-
-    // Optimize TCP socket for low latency & max throughput
-    if (req.socket) {
-      req.socket.setNoDelay(true);
-      req.socket.setKeepAlive(true, 15000);
-    }
-
-    const dlnaHeaders = {
-      'Accept-Ranges': 'bytes',
-      'Content-Type': contentType,
-      'Access-Control-Allow-Origin': '*',
-      'Connection': 'keep-alive',
-      'Keep-Alive': 'timeout=60, max=10000',
-      'transferMode.dlna.org': 'Streaming',
-      'contentFeatures.dlna.org': 'DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-      'Cache-Control': 'public, max-age=31536000'
-    };
-
-    if (range) {
-      const parts = range.replace(/bytes=/, "").split("-");
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-
-      if (start >= fileSize) {
-        res.status(416).send('Requested range not satisfiable\n' + start + ' >= ' + fileSize);
-        return;
-      }
-
-      const chunkSize = (end - start) + 1;
-      res.writeHead(206, {
-        ...dlnaHeaders,
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Content-Length': chunkSize
-      });
-
-      const file = fs.createReadStream(filePath, {
-        start,
-        end,
-        highWaterMark: STREAM_HIGH_WATER_MARK
-      });
-      file.pipe(res);
-    } else {
-      res.writeHead(200, {
-        ...dlnaHeaders,
-        'Content-Length': fileSize
-      });
-
-      const file = fs.createReadStream(filePath, {
-        highWaterMark: STREAM_HIGH_WATER_MARK
-      });
-      file.pipe(res);
-    }
-  } catch (error) {
-    console.error('[Stream Error]', error);
-    res.status(500).send('Error streaming media file');
-  }
-});
+app.get('/api/files/stream', handleMediaStream);
 
 // API: Direct File Download
 app.get('/api/files/download', (req, res) => {

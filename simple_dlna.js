@@ -8,12 +8,9 @@ import mediaStore from './src/dlna/contentDirectory/mediaStore.js';
 import ssdpServer from './src/dlna/ssdp/ssdpServer.js';
 import dlnaRouter from './src/dlna/index.js';
 import getDeviceIcon from './src/dlna/device/icons.js';
-import mime from 'mime-types';
+import handleMediaStream from './src/dlna/utils/streamHandler.js';
 
-// High-performance streaming buffer: 1 MB chunks (1024 * 1024) to saturate Gigabit LAN
-const STREAM_HIGH_WATER_MARK = 1024 * 1024;
-
-// --- Default media directory ---
+// --- Default Media Directory ---
 const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'Video');
 if (!fs.existsSync(defaultVideosDir)) {
   try { fs.mkdirSync(defaultVideosDir, { recursive: true }); } catch (e) {}
@@ -79,77 +76,8 @@ app.get('/icon-:size.png', (req, res) => {
   res.send(getDeviceIcon(size));
 });
 
-// --- High Performance Video Streaming Endpoint (Gigabit Optimized) ---
-app.get('/api/files/stream', (req, res) => {
-  try {
-    const filePath = req.query.path ? decodeURIComponent(req.query.path) : null;
-    if (!filePath || !fs.existsSync(filePath)) {
-      return res.status(404).send('File not found');
-    }
-
-    const stat = fs.statSync(filePath);
-    const fileSize = stat.size;
-    const range = req.headers.range;
-    const contentType = mime.lookup(filePath) || 'video/mp4';
-
-    console.log(`[DLNA Stream] ${req.ip} -> Playing "${path.basename(filePath)}" (${range ? 'Range: ' + range : 'Full Play'})`);
-
-    // Optimize TCP socket for zero latency & high throughput
-    if (req.socket) {
-      req.socket.setNoDelay(true);
-      req.socket.setKeepAlive(true, 15000);
-    }
-
-    const dlnaHeaders = {
-      'Accept-Ranges': 'bytes',
-      'Content-Type': contentType,
-      'Access-Control-Allow-Origin': '*',
-      'Connection': 'keep-alive',
-      'Keep-Alive': 'timeout=60, max=10000',
-      'transferMode.dlna.org': 'Streaming',
-      'contentFeatures.dlna.org': 'DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-      'Cache-Control': 'public, max-age=31536000'
-    };
-
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-
-      if (start >= fileSize) {
-        return res.status(416).send(`Range not satisfiable`);
-      }
-
-      const chunkSize = end - start + 1;
-      res.writeHead(206, {
-        ...dlnaHeaders,
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Content-Length': chunkSize
-      });
-
-      // Stream with 1MB highWaterMark buffer for max throughput
-      const stream = fs.createReadStream(filePath, {
-        start,
-        end,
-        highWaterMark: STREAM_HIGH_WATER_MARK
-      });
-      stream.pipe(res);
-    } else {
-      res.writeHead(200, {
-        ...dlnaHeaders,
-        'Content-Length': fileSize
-      });
-
-      const stream = fs.createReadStream(filePath, {
-        highWaterMark: STREAM_HIGH_WATER_MARK
-      });
-      stream.pipe(res);
-    }
-  } catch (err) {
-    console.error('[Stream Error]', err.message);
-    res.status(500).send('Error streaming media file');
-  }
-});
+// Stream Endpoint
+app.get('/api/files/stream', handleMediaStream);
 
 // --- Start Server ---
 const PORT = await findFreePort(PREFERRED_PORT);
@@ -159,7 +87,7 @@ if (PORT !== PREFERRED_PORT) {
 
 const primaryIp = getPrimaryIp();
 
-app.listen(PORT, '0.0.0.0', async () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log('\n==================================================');
   console.log(`⚡ AiroSMB High-Performance Gigabit DLNA Media Server`);
   console.log(`📂 Sharing:    ${mediaDir}`);
@@ -177,3 +105,16 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log('\n✅ DLNA server ready! Open VLC -> View -> Playlist -> Universal Plug\'n\'Play');
   console.log(`✅ Or open on your TV: http://${primaryIp}:${PORT}/dlna/presentation\n`);
 });
+
+// --- Graceful Process Shutdown ---
+function shutdown() {
+  console.log('\n[AiroSMB] Shutting down DLNA server...');
+  ssdpServer.stop();
+  server.close(() => {
+    console.log('[AiroSMB] HTTP Server closed cleanly.');
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

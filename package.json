@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "server": "node server.js",
     "start": "node server.js",
-    "dlna": "node simple_dlna.js"
+    "dlna": "node simple_dlna.js",
+    "test": "node tests/test_complete_dlna.js"
   },
   "dependencies": {
     "@cloud-cli/smb": "^1.0.3",
