@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, HardDrive, Tv, Wifi, Check, Folder, ChevronRight } from 'lucide-react';
 
 export default function Settings({ networkInfo, onRefreshNetwork }) {
+  const isElectron = !!(window.electronAPI && window.electronAPI.isElectron);
+  const [isAutostart, setIsAutostart] = useState(false);
   const [sharedPath, setSharedPath] = useState(networkInfo?.rootDirectory || 'C:\\Users\\aseps\\Videos');
   const [ftpPortInput, setFtpPortInput] = useState(2121);
   const [savingPath, setSavingPath] = useState(false);
@@ -9,6 +11,25 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
   const [msgPath, setMsgPath] = useState('');
   const [msgFtp, setMsgFtp] = useState('');
   const [directoriesInfo, setDirectoriesInfo] = useState({ shortcuts: [], drives: [] });
+
+  useEffect(() => {
+    if (isElectron) {
+      window.electronAPI.getAutostartSettings().then(val => {
+        setIsAutostart(val);
+      });
+    }
+  }, [isElectron]);
+
+  const handleBrowseFolder = async () => {
+    try {
+      const selected = await window.electronAPI.selectFolder();
+      if (selected) {
+        setSharedPath(selected);
+      }
+    } catch (err) {
+      console.error('Error selecting folder:', err);
+    }
+  };
 
   const fetchFtpStatus = async () => {
     try {
@@ -131,13 +152,28 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
               <label style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
                 Default Target Folder Path:
               </label>
-              <input 
-                type="text" 
-                value={sharedPath} 
-                onChange={(e) => setSharedPath(e.target.value)}
-                className="pro-input"
-                style={{ width: '100%' }}
-              />
+              {isElectron ? (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    type="text" 
+                    value={sharedPath} 
+                    readOnly
+                    className="pro-input"
+                    style={{ flex: 1 }}
+                  />
+                  <button type="button" className="btn-pro-secondary" onClick={handleBrowseFolder} style={{ fontSize: '0.8rem', padding: '6px 12px' }}>
+                    Browse...
+                  </button>
+                </div>
+              ) : (
+                <input 
+                  type="text" 
+                  value={sharedPath} 
+                  onChange={(e) => setSharedPath(e.target.value)}
+                  className="pro-input"
+                  style={{ width: '100%' }}
+                />
+              )}
               <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '6px', display: 'block' }}>
                 System default: <code style={{ color: 'var(--accent-orange)' }}>C:\Users\aseps\Videos</code>
               </span>
@@ -252,6 +288,42 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
         </div>
 
       </div>
+
+      {/* Desktop System Options (Electron Only) */}
+      {isElectron && (
+        <div className="pro-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SettingsIcon size={18} color="var(--accent-orange)" />
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>Desktop System Options</h3>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>
+              <input 
+                type="checkbox"
+                checked={isAutostart}
+                onChange={async (e) => {
+                  const newVal = e.target.checked;
+                  const result = await window.electronAPI.setAutostartSettings(newVal);
+                  setIsAutostart(result);
+                }}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--accent-orange)' }}
+              />
+              <span>Launch AiroShare automatically on Windows Boot</span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              <input 
+                type="checkbox"
+                checked={true}
+                disabled
+                style={{ width: '16px', height: '16px', accentColor: 'var(--accent-orange)' }}
+              />
+              <span>Minimize to System Tray on close (Silent Background Execution)</span>
+            </label>
+          </div>
+        </div>
+      )}
 
       {/* DLNA SSDP Broadcaster Settings Card */}
       <div className="pro-card">

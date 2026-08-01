@@ -58,8 +58,8 @@ function crc32(buf) {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-// Generate 64x64 AiroShare Sunset Icon PNG
-const pngBuffer = createPng(64, 64, (x, y, w, h) => {
+// Generate 256x256 AiroShare Sunset Icon PNG
+const pngBuffer = createPng(256, 256, (x, y, w, h) => {
   const nx = x / w;
   const ny = y / h;
 
@@ -106,6 +106,6 @@ const pngBuffer = createPng(64, 64, (x, y, w, h) => {
   return [r, g, b, a];
 });
 
-fs.writeFileSync('c:/Users/aseps/Downloads/Projects/AiroSMB/scratch/icon.png', pngBuffer);
+fs.writeFileSync('c:/Users/aseps/Downloads/Projects/AiroSMB/public/AiroShare.png', pngBuffer);
 console.log('Base64 PNG length:', pngBuffer.toString('base64').length);
 console.log('Base64 PNG:', pngBuffer.toString('base64'));

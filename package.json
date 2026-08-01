@@ -3,7 +3,8 @@
   "version": "1.2.0",
   "type": "module",
   "description": "High Performance PC Media Server & Local File Engine",
-  "main": "server.js",
+  "author": "AiroShare Team",
+  "main": "electron-main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,7 +12,11 @@
     "server": "node server.js",
     "start": "node server.js",
     "dlna": "node simple_dlna.js",
-    "test": "node tests/test_complete_dlna.js"
+    "test": "node tests/test_complete_dlna.js",
+    "electron:dev": "electron .",
+    "dist:portable": "electron-builder --win portable",
+    "dist:installer": "electron-builder --win nsis",
+    "dist:all": "electron-builder --win"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -28,6 +33,51 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "vite": "^5.3.1"
+  },
+  "build": {
+    "appId": "com.airoshare.app",
+    "productName": "AiroShare",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist-electron"
+    },
+    "win": {
+      "icon": "public/AiroShare.png",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AiroShare"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "server.js",
+      "ftpServer.js",
+      "config/dlna.js",
+      "electron-main.cjs",
+      "electron-preload.cjs",
+      "src/dlna/**/*",
+      "src/utils/**/*",
+      "public/AiroShare.png",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "server.js",
+      "ftpServer.js",
+      "config/dlna.js",
+      "src/dlna/**/*",
+      "src/utils/**/*"
+    ]
   }
 }
