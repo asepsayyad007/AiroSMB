@@ -3,10 +3,15 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import net from 'net';
+import cors from 'cors';
 import mediaStore from './src/dlna/contentDirectory/mediaStore.js';
 import ssdpServer from './src/dlna/ssdp/ssdpServer.js';
 import dlnaRouter from './src/dlna/index.js';
+import getDeviceIcon from './src/dlna/device/icons.js';
 import mime from 'mime-types';
+
+// High-performance streaming buffer: 1 MB chunks (1024 * 1024) to saturate Gigabit LAN
+const STREAM_HIGH_WATER_MARK = 1024 * 1024;
 
 // --- Default media directory ---
 const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'Video');
@@ -28,7 +33,6 @@ if (!fs.existsSync(mediaDir)) {
 // --- Helper: Detect Primary LAN IPv4 Address ---
 function getPrimaryIp() {
   const interfaces = os.networkInterfaces();
-  // Sort to prefer Wi-Fi/Ethernet adapters
   const names = Object.keys(interfaces).sort((a, b) => {
     const aIsPhysical = /wi-fi|wifi|ethernet|local area connection/i.test(a);
     const bIsPhysical = /wi-fi|wifi|ethernet|local area connection/i.test(b);
@@ -59,9 +63,6 @@ function findFreePort(start) {
   });
 }
 
-import getDeviceIcon from './src/dlna/device/icons.js';
-import cors from 'cors';
-
 // --- Express App Setup ---
 const app = express();
 app.use(cors());
@@ -71,14 +72,14 @@ app.use(express.text({ type: ['text/xml', 'application/xml'] }));
 // Mount DLNA UPnP Router
 app.use('/dlna', dlnaRouter);
 
-// UPnP Device Icons (required by the UPnP spec for device recognition)
+// UPnP Device Icons
 app.get('/icon-:size.png', (req, res) => {
   const size = parseInt(req.params.size, 10);
   res.setHeader('Content-Type', 'image/png');
   res.send(getDeviceIcon(size));
 });
 
-// Media Streaming Endpoint with HTTP 206 Range seeking support
+// --- High Performance Video Streaming Endpoint (Gigabit Optimized) ---
 app.get('/api/files/stream', (req, res) => {
   try {
     const filePath = req.query.path ? decodeURIComponent(req.query.path) : null;
@@ -91,6 +92,23 @@ app.get('/api/files/stream', (req, res) => {
     const range = req.headers.range;
     const contentType = mime.lookup(filePath) || 'video/mp4';
 
+    // Optimize TCP socket for zero latency & high throughput
+    if (req.socket) {
+      req.socket.setNoDelay(true);
+      req.socket.setKeepAlive(true, 15000);
+    }
+
+    const dlnaHeaders = {
+      'Accept-Ranges': 'bytes',
+      'Content-Type': contentType,
+      'Access-Control-Allow-Origin': '*',
+      'Connection': 'keep-alive',
+      'Keep-Alive': 'timeout=60, max=10000',
+      'transferMode.dlna.org': 'Streaming',
+      'contentFeatures.dlna.org': 'DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+      'Cache-Control': 'public, max-age=31536000'
+    };
+
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
@@ -102,21 +120,28 @@ app.get('/api/files/stream', (req, res) => {
 
       const chunkSize = end - start + 1;
       res.writeHead(206, {
+        ...dlnaHeaders,
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': chunkSize,
-        'Content-Type': contentType,
-        'Access-Control-Allow-Origin': '*'
+        'Content-Length': chunkSize
       });
-      fs.createReadStream(filePath, { start, end }).pipe(res);
+
+      // Stream with 1MB highWaterMark buffer for max throughput
+      const stream = fs.createReadStream(filePath, {
+        start,
+        end,
+        highWaterMark: STREAM_HIGH_WATER_MARK
+      });
+      stream.pipe(res);
     } else {
       res.writeHead(200, {
-        'Content-Length': fileSize,
-        'Content-Type': contentType,
-        'Accept-Ranges': 'bytes',
-        'Access-Control-Allow-Origin': '*'
+        ...dlnaHeaders,
+        'Content-Length': fileSize
       });
-      fs.createReadStream(filePath).pipe(res);
+
+      const stream = fs.createReadStream(filePath, {
+        highWaterMark: STREAM_HIGH_WATER_MARK
+      });
+      stream.pipe(res);
     }
   } catch (err) {
     console.error('[Stream Error]', err.message);
@@ -134,7 +159,7 @@ const primaryIp = getPrimaryIp();
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log('\n==================================================');
-  console.log(`📡 AiroSMB Standalone DLNA / UPnP Media Server`);
+  console.log(`⚡ AiroSMB High-Performance Gigabit DLNA Media Server`);
   console.log(`📂 Sharing:    ${mediaDir}`);
   console.log(`🌐 LAN URL:    http://${primaryIp}:${PORT}`);
   console.log(`📄 Device XML: http://${primaryIp}:${PORT}/dlna/description.xml`);

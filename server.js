@@ -529,7 +529,10 @@ app.get('/api/files/browse', (req, res) => {
   }
 });
 
-// API: Stream File with HTTP 206 Partial Content (Essential for VLC & HTML5 Video Seeking)
+// High-performance streaming buffer: 1 MB chunks (1024 * 1024) to saturate Gigabit LAN
+const STREAM_HIGH_WATER_MARK = 1024 * 1024;
+
+// API: Stream File with HTTP 206 Partial Content (Gigabit & DLNA Optimized)
 app.get('/api/files/stream', (req, res) => {
   try {
     const filePath = req.query.path ? decodeURIComponent(req.query.path) : null;
@@ -542,6 +545,23 @@ app.get('/api/files/stream', (req, res) => {
     const range = req.headers.range;
     const contentType = mime.lookup(filePath) || 'video/mp4';
 
+    // Optimize TCP socket for low latency & max throughput
+    if (req.socket) {
+      req.socket.setNoDelay(true);
+      req.socket.setKeepAlive(true, 15000);
+    }
+
+    const dlnaHeaders = {
+      'Accept-Ranges': 'bytes',
+      'Content-Type': contentType,
+      'Access-Control-Allow-Origin': '*',
+      'Connection': 'keep-alive',
+      'Keep-Alive': 'timeout=60, max=10000',
+      'transferMode.dlna.org': 'Streaming',
+      'contentFeatures.dlna.org': 'DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+      'Cache-Control': 'public, max-age=31536000'
+    };
+
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
@@ -552,27 +572,29 @@ app.get('/api/files/stream', (req, res) => {
         return;
       }
 
-      const chunksize = (end - start) + 1;
-      const file = fs.createReadStream(filePath, { start, end });
-      const head = {
+      const chunkSize = (end - start) + 1;
+      res.writeHead(206, {
+        ...dlnaHeaders,
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': chunksize,
-        'Content-Type': contentType,
-        'Access-Control-Allow-Origin': '*'
-      };
+        'Content-Length': chunkSize
+      });
 
-      res.writeHead(206, head);
+      const file = fs.createReadStream(filePath, {
+        start,
+        end,
+        highWaterMark: STREAM_HIGH_WATER_MARK
+      });
       file.pipe(res);
     } else {
-      const head = {
-        'Content-Length': fileSize,
-        'Content-Type': contentType,
-        'Accept-Ranges': 'bytes',
-        'Access-Control-Allow-Origin': '*'
-      };
-      res.writeHead(200, head);
-      fs.createReadStream(filePath).pipe(res);
+      res.writeHead(200, {
+        ...dlnaHeaders,
+        'Content-Length': fileSize
+      });
+
+      const file = fs.createReadStream(filePath, {
+        highWaterMark: STREAM_HIGH_WATER_MARK
+      });
+      file.pipe(res);
     }
   } catch (error) {
     console.error('[Stream Error]', error);

@@ -3,13 +3,12 @@ import os from 'os';
 import dlnaConfig from '../../../config/dlna.js';
 
 /**
- * Production-grade SSDP Server
- * Fixes:
- *  - Bind to specific LAN interface IP, not 0.0.0.0 (required for Windows multicast)
- *  - Proper MX delay on M-SEARCH responses (UPnP spec compliance)
- *  - Robust ST header parsing (handles \r\n and case variations)
- *  - Delayed initial NOTIFY after socket is fully ready
- *  - Additional multicast interface binding for all LAN adapters
+ * Ultra-Fast Production SSDP Server
+ * Optimizations:
+ *  - Multicast binding per real LAN interface (Ethernet, Wi-Fi)
+ *  - Immediate burst notifications on startup & rejoin (3x spaced 150ms apart)
+ *  - Low-latency M-SEARCH responses (instant response for fast device discovery)
+ *  - 5-second re-announce cycle for seamless TV & VLC auto-discovery
  */
 class SsdpServer {
   constructor() {
@@ -22,9 +21,6 @@ class SsdpServer {
     this.isRunning = false;
   }
 
-  /**
-   * Get all real LAN IPv4 addresses (exclude loopback, virtual, APIPA)
-   */
   getLanInterfaces() {
     const interfaces = os.networkInterfaces();
     const addrs = [];
@@ -67,47 +63,43 @@ class SsdpServer {
         this.isRunning = false;
       });
 
-      // KEY FIX: Bind to 0.0.0.0 so the socket can receive multicast,
-      // but explicitly add multicast membership on each LAN interface IP.
       this.socket.bind(this.ssdpPort, '0.0.0.0', () => {
         try {
-          this.socket.setMulticastLoopback(true); // allow same-machine VLC to receive broadcasts
+          this.socket.setMulticastLoopback(true);
           this.socket.setMulticastTTL(4);
 
-          // Add multicast membership on each real LAN adapter
           const lanInterfaces = this.getLanInterfaces();
           let joined = 0;
           for (const iface of lanInterfaces) {
             try {
               this.socket.addMembership(this.multicastAddress, iface.address);
-              console.log(`[DLNA SSDP] Joined multicast on ${iface.name} (${iface.address})`);
+              console.log(`[DLNA SSDP] Fast multicast active on ${iface.name} (${iface.address})`);
               joined++;
             } catch (e) {
               console.warn(`[DLNA SSDP] Could not join multicast on ${iface.name}: ${e.message}`);
             }
           }
 
-          // Fallback: join on 0.0.0.0 if no specific interfaces worked
           if (joined === 0) {
             try {
               this.socket.addMembership(this.multicastAddress);
-              console.log('[DLNA SSDP] Joined multicast on default interface');
+              console.log('[DLNA SSDP] Fast multicast active on default interface');
             } catch (e) {
               console.warn('[DLNA SSDP] Default multicast join failed:', e.message);
             }
           }
 
           this.isRunning = true;
-          console.log(`[DLNA SSDP Server] Active on UDP ${this.multicastAddress}:${this.ssdpPort}`);
+          console.log(`[DLNA SSDP Server] High-speed active on UDP ${this.multicastAddress}:${this.ssdpPort}`);
           console.log(`[DLNA SSDP Server] LOCATION -> http://${this.primaryIp}:${this.port}/dlna/description.xml`);
 
-          // KEY FIX: Delay first NOTIFY by 500ms to ensure socket is fully ready on Windows
-          setTimeout(() => {
+          // INSTANT BURST DISCOVERY: Send 3 notification bursts immediately
+          this.sendNotifyBurst();
+
+          // Continuous fast re-announce every 5 seconds for new devices joining Wi-Fi
+          this.intervalId = setInterval(() => {
             this.sendNotify('ssdp:alive');
-            this.intervalId = setInterval(() => {
-              this.sendNotify('ssdp:alive');
-            }, 15000); // re-announce every 15s (CACHE-CONTROL max-age=1800)
-          }, 500);
+          }, 5000);
 
         } catch (err) {
           console.warn('[DLNA SSDP Bind Error]', err.message);
@@ -116,6 +108,15 @@ class SsdpServer {
     } catch (err) {
       console.error('[DLNA SSDP Start Error]', err);
     }
+  }
+
+  sendNotifyBurst() {
+    let count = 0;
+    const burstTimer = setInterval(() => {
+      this.sendNotify('ssdp:alive');
+      count++;
+      if (count >= 3) clearInterval(burstTimer);
+    }, 150);
   }
 
   stop() {
@@ -178,14 +179,11 @@ class SsdpServer {
     const location = `http://${this.primaryIp}:${this.port}/dlna/description.xml`;
     const targets = this.getUsnTargets();
 
-    // KEY FIX: Robust ST header parsing - strip \r, \n, spaces
     const stMatch = msg.match(/^ST:\s*(.+)$/im);
     const st = stMatch ? stMatch[1].replace(/\r/g, '').trim() : 'ssdp:all';
 
-    // KEY FIX: Parse MX header and apply a random delay within [0, MX] seconds
-    const mxMatch = msg.match(/^MX:\s*(\d+)/im);
-    const mx = mxMatch ? Math.min(parseInt(mxMatch[1], 10), 5) : 1;
-    const delay = Math.random() * mx * 1000;
+    // ULTRA FAST M-SEARCH RESPONSE: Cap delay to max 50ms so clients see us instantly
+    const delay = Math.floor(Math.random() * 50);
 
     setTimeout(() => {
       if (!this.socket || !this.isRunning) return;
@@ -214,8 +212,6 @@ class SsdpServer {
         }
       }
     }, delay);
-
-    console.log(`[DLNA SSDP] M-SEARCH from ${rinfo.address}:${rinfo.port} ST="${st}" MX=${mx} -> responding in ${Math.round(delay)}ms`);
   }
 }
 
