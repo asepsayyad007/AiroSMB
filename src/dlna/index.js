@@ -29,9 +29,15 @@ router.use((req, res, next) => {
 });
 
 // UPnP Device Description XML
+// KEY FIX: Use the real LAN IP from SSDP server, not Host header (which could be 127.0.0.1).
+// VLC and TVs need the LAN IP in the LOCATION field to actually connect.
 router.get('/description.xml', (req, res) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-  res.setHeader('Content-Type', 'text/xml');
+  const serverIp = ssdpServer.primaryIp && ssdpServer.primaryIp !== '127.0.0.1'
+    ? ssdpServer.primaryIp
+    : req.get('host');
+  const baseUrl = `http://${serverIp}:${ssdpServer.port || 3000}`;
+  res.setHeader('Content-Type', 'text/xml; charset="utf-8"');
+  res.setHeader('X-User-Agent', 'redsonic');
   res.send(getDeviceDescriptionXml(baseUrl));
 });
 
