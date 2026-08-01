@@ -5,7 +5,7 @@
 
 [![Version](https://img.shields.io/badge/Version-1.1.0-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)](#-deep-dive-technical-architecture)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge)](LICENSE)
 [![Stack](https://img.shields.io/badge/Stack-Node.js%20%7C%20React%20%7C%20Vite-brightgreen?style=for-the-badge&logo=node.js)](#)
 
 **Stream 4K videos, music, and photos from your PC to Smart TVs, VLC, smartphones, and consoles over Wi-Fi with zero lag.**
@@ -118,4 +118,4 @@ AiroShare is built to be a robust, high-performance, and lightweight local area 
 
 ## 🔒 License
 
-This project is released under the **MIT License**. Designed for high-speed local home media streaming and file sharing.
+This project is released under the **GNU General Public License v3**. Designed for high-speed local home media streaming and file sharing.
