@@ -7,6 +7,7 @@ import multer from 'multer';
 import mime from 'mime-types';
 import QRCode from 'qrcode';
 import AiroFtpServer from './ftpServer.js';
+import { execSync } from 'child_process';
 
 // DLNA Module Imports
 import dlnaRouter from './src/dlna/index.js';
@@ -26,9 +27,9 @@ const servicesState = {
   dlna: true
 };
 
-// Set up default initial directory (Default: C:\Users\<user>\Downloads)
-const defaultDownloadsDir = path.join(os.homedir(), 'Downloads');
-let rootDirectory = fs.existsSync(defaultDownloadsDir) ? defaultDownloadsDir : os.homedir();
+// Set up default initial directory (Default: C:\Users\aseps\Videos)
+const defaultVideosDir = os.platform() === 'win32' ? 'C:\\Users\\aseps\\Videos' : path.join(os.homedir(), 'Videos');
+let rootDirectory = fs.existsSync(defaultVideosDir) ? defaultVideosDir : (fs.existsSync(path.join(os.homedir(), 'Videos')) ? path.join(os.homedir(), 'Videos') : os.homedir());
 
 if (!fs.existsSync(rootDirectory)) {
   try {
@@ -449,6 +450,54 @@ app.get('/api/network/info', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Get Shortcut Directories and Active Drives
+app.get('/api/network/shortcut-directories', (req, res) => {
+  try {
+    const home = os.homedir();
+    const shortcuts = [
+      { name: 'Videos', path: os.platform() === 'win32' ? 'C:\\Users\\aseps\\Videos' : path.join(home, 'Videos') },
+      { name: 'Downloads', path: path.join(home, 'Downloads') },
+      { name: 'Desktop', path: path.join(home, 'Desktop') },
+      { name: 'Home Directory', path: home }
+    ];
+
+    // Filter shortcuts to only existing directories
+    const existingShortcuts = shortcuts.filter(s => {
+      try {
+        return fs.existsSync(s.path) && fs.statSync(s.path).isDirectory();
+      } catch {
+        return false;
+      }
+    });
+
+    const drives = [];
+    if (os.platform() === 'win32') {
+      try {
+        const stdout = execSync('wmic logicaldisk get name').toString();
+        const list = stdout
+          .split('\r\r\n')
+          .filter(val => /[A-Za-z]:/.test(val))
+          .map(val => val.trim() + '\\');
+        drives.push(...list);
+      } catch {
+        // Fallback
+        ['C:\\', 'D:\\', 'E:\\', 'F:\\'].forEach(d => {
+          try {
+            fs.accessSync(d);
+            drives.push(d);
+          } catch {}
+        });
+      }
+    } else {
+      drives.push('/');
+    }
+
+    res.json({ shortcuts: existingShortcuts, drives });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
