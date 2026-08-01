@@ -11,7 +11,7 @@ const dlnaConfig = {
   manufacturerUrl: 'http://localhost:3000',
   modelName: 'AiroShare',
   modelDescription: 'High Performance PC Home Media & File Sharing Server',
-  modelNumber: '1.1.0',
+  modelNumber: '1.2.0',
   serialNumber: 'AIROSHARE-2026-001',
   uuid: 'uuid:airoshare-mediaserver-1000-8000-000000000001',
   
