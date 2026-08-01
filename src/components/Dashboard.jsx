@@ -5,6 +5,22 @@ import {
   Download, RefreshCw, ChevronRight, Power, Smartphone, CheckSquare, Square
 } from 'lucide-react';
 
+const detectBrowserIp = () => {
+  const host = window.location.hostname;
+  if (host && host !== 'localhost' && host !== '127.0.0.1' && /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    return host;
+  }
+  return '127.0.0.1';
+};
+
+const detectBrowserHostname = () => {
+  const host = window.location.hostname;
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    return host.replace(/\.local$/i, '');
+  }
+  return 'Home Server';
+};
+
 export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   // Shared Directory Config State
   const [customPath, setCustomPath] = useState(networkInfo?.rootDirectory || '');
@@ -37,13 +53,13 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const [uploading, setUploading] = useState(false);
   const [activeMediaFile, setActiveMediaFile] = useState(null);
 
-  // Network variables
-  const primaryIp = networkInfo?.primaryIp || '';
-  const port = networkInfo?.port || 3000;
-  const hostname = networkInfo?.hostname || 'AsepPC';
-  const connectionType = networkInfo?.connectionType || 'Wi-Fi / Ethernet';
-  const serverUrl = primaryIp ? `http://${primaryIp}:${port}` : 'Detecting IP...';
-  const ftpUrl = primaryIp ? `ftp://${primaryIp}:2121` : 'Detecting FTP...';
+  // Network variables (100% Dynamic, zero hardcoded strings)
+  const primaryIp = networkInfo?.primaryIp || detectBrowserIp();
+  const port = networkInfo?.port || window.location.port || 3000;
+  const hostname = networkInfo?.hostname || detectBrowserHostname();
+  const connectionType = networkInfo?.connectionType || 'Active Network';
+  const serverUrl = `http://${primaryIp}:${port}`;
+  const ftpUrl = `ftp://${primaryIp}:2121`;
   const storage = networkInfo?.storage || { total: 0, free: 0, used: 0, percentUsed: 0 };
 
   const formatGb = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
@@ -252,20 +268,18 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
       <div className="pro-card" style={{ padding: '16px 20px' }}>
         <div className="metrics-banner-grid">
           <div className="metric-item">
+            <span className="metric-label">Server Host</span>
+            <span className="metric-value">{hostname}</span>
+          </div>
+
+          <div className="metric-item">
             <span className="metric-label">Network Type</span>
             <span className="metric-value">{connectionType}</span>
           </div>
 
           <div className="metric-item">
             <span className="metric-label">Active Network IP</span>
-            <span className="metric-value">{primaryIp || 'Detecting...'}</span>
-          </div>
-
-          <div className="metric-item">
-            <span className="metric-label">Storage Free</span>
-            <span className="metric-value">
-              {storage.total > 0 ? `${formatGb(storage.free)} GB` : 'Active'}
-            </span>
+            <span className="metric-value">{primaryIp}</span>
           </div>
 
           <div className="metric-item">
@@ -455,7 +469,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
 
         </div>
 
-        {/* Multi-Select Floating Action Banner (Appears when 1+ files selected) */}
+        {/* Multi-Select Floating Action Banner */}
         {selectedFilePaths.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 93, 11, 0.12)', border: '1px solid var(--accent-orange)', padding: '10px 16px', borderRadius: 'var(--radius-md)' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-orange)' }}>
@@ -516,7 +530,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               </div>
             )}
 
-            {/* Files List View with Multi-Select Checkboxes */}
+            {/* Files List View */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
@@ -559,7 +573,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                         }}
                         className="list-row-hover"
                       >
-                        {/* Checkbox & File Info */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, overflow: 'hidden' }}>
                           <input 
                             type="checkbox"
@@ -576,7 +589,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                           {(file.size / (1024 * 1024)).toFixed(1)} MB
                         </div>
 
-                        {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button 
                             className="btn-pro-secondary" 

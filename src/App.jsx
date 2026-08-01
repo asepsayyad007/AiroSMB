@@ -5,6 +5,22 @@ import ActiveClients from './components/ActiveClients';
 import Settings from './components/Settings';
 import AiroShareIcon from './components/AiroShareIcon';
 
+const detectBrowserIp = () => {
+  const host = window.location.hostname;
+  if (host && host !== 'localhost' && host !== '127.0.0.1' && /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    return host;
+  }
+  return '127.0.0.1';
+};
+
+const detectBrowserHostname = () => {
+  const host = window.location.hostname;
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    return host.replace(/\.local$/i, '');
+  }
+  return 'Home Server';
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [networkInfo, setNetworkInfo] = useState(null);
@@ -24,13 +40,15 @@ export default function App() {
 
   useEffect(() => {
     fetchNetworkInfo();
+    const interval = setInterval(fetchNetworkInfo, 3000);
+    return () => clearInterval(interval);
   }, []);
 
-  const primaryIp = networkInfo?.primaryIp || '';
-  const port = networkInfo?.port || 3000;
-  const hostname = networkInfo?.hostname || 'AsepPC';
-  const connectionType = networkInfo?.connectionType || 'Network';
-  const serverUrl = networkInfo?.serverUrl || (primaryIp ? `http://${primaryIp}:${port}` : '');
+  const primaryIp = networkInfo?.primaryIp || detectBrowserIp();
+  const port = networkInfo?.port || window.location.port || 3000;
+  const hostname = networkInfo?.hostname || detectBrowserHostname();
+  const connectionType = networkInfo?.connectionType || 'Active Network';
+  const serverUrl = `http://${primaryIp}:${port}`;
 
   return (
     <div className="app-container">
@@ -89,7 +107,7 @@ export default function App() {
             <span>Server Active</span>
           </div>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {primaryIp ? `${primaryIp}:${port}` : 'Detecting IP...'}
+            {primaryIp}:{port}
           </div>
         </div>
 
@@ -110,7 +128,7 @@ export default function App() {
 
           <div className="top-actions">
             <span className="status-pill status-active">
-              <Wifi size={12} /> {connectionType} {primaryIp ? `(${primaryIp})` : ''}
+              <Wifi size={12} /> {connectionType} ({primaryIp})
             </span>
 
             <button className="btn-pro-secondary" onClick={() => setShowTopQrModal(true)}>
