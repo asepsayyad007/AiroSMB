@@ -11,7 +11,7 @@ const dlnaConfig = {
   manufacturerUrl: 'http://localhost:3000',
   modelName: 'AiroSMB',
   modelDescription: 'High Performance PC Home Media & File Sharing Server',
-  modelNumber: '1.0.0',
+  modelNumber: '1.1.0',
   serialNumber: 'AIROSMB-2026-001',
   uuid: 'uuid:airosmb-mediaserver-1000-8000-000000000001',
   
@@ -25,17 +25,17 @@ const dlnaConfig = {
 
   mediaRoot: 'C:\\Users\\aseps\\Downloads\\Video',
   
-  // Supported MIME types map for DLNA ProtocolInfo
+  // Supported MIME types map for UPnP protocolInfo (MUST start with http-get:*:)
   mimeProtocolInfoMap: {
-    '.mp4': 'video/mp4:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-    '.mkv': 'video/x-matroska:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-    '.avi': 'video/x-msvideo:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-    '.mov': 'video/quicktime:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-    '.mp3': 'audio/mpeg:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-    '.flac': 'audio/flac:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
-    '.jpg': 'image/jpeg:DLNA.ORG_PN=JPEG_LRG;DLNA.ORG_CI=1',
-    '.jpeg': 'image/jpeg:DLNA.ORG_PN=JPEG_LRG;DLNA.ORG_CI=1',
-    '.png': 'image/png:DLNA.ORG_PN=PNG_LRG;DLNA.ORG_CI=1'
+    '.mp4': 'http-get:*:video/mp4:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+    '.mkv': 'http-get:*:video/x-matroska:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+    '.avi': 'http-get:*:video/x-msvideo:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+    '.mov': 'http-get:*:video/quicktime:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+    '.mp3': 'http-get:*:audio/mpeg:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+    '.flac': 'http-get:*:audio/flac:DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+    '.jpg': 'http-get:*:image/jpeg:DLNA.ORG_PN=JPEG_LRG;DLNA.ORG_CI=1',
+    '.jpeg': 'http-get:*:image/jpeg:DLNA.ORG_PN=JPEG_LRG;DLNA.ORG_CI=1',
+    '.png': 'http-get:*:image/png:DLNA.ORG_PN=PNG_LRG;DLNA.ORG_CI=1'
   }
 };
 
