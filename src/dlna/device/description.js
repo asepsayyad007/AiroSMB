@@ -1,0 +1,164 @@
+import os from 'os';
+import dlnaConfig from '../../../config/dlna.js';
+
+export function getDeviceDescriptionXml(baseUrl) {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:dlna="urn:schemas-dlna-org:device-1-0">
+  <specVersion>
+    <major>1</major>
+    <minor>0</minor>
+  </specVersion>
+  <device>
+    <deviceType>urn:schemas-upnp-org:device:MediaServer:1</deviceType>
+    <friendlyName>${dlnaConfig.friendlyName} (${os.hostname()})</friendlyName>
+    <manufacturer>${dlnaConfig.manufacturer}</manufacturer>
+    <manufacturerURL>${baseUrl}</manufacturerURL>
+    <modelDescription>${dlnaConfig.modelDescription}</modelDescription>
+    <modelName>${dlnaConfig.modelName}</modelName>
+    <modelNumber>${dlnaConfig.modelNumber}</modelNumber>
+    <modelURL>${baseUrl}</modelURL>
+    <serialNumber>${dlnaConfig.serialNumber}</serialNumber>
+    <UDN>${dlnaConfig.uuid}</UDN>
+    <presentationURL>${baseUrl}/</presentationURL>
+
+    <iconList>
+      <icon>
+        <mimetype>image/png</mimetype>
+        <width>64</width>
+        <height>64</height>
+        <depth>24</depth>
+        <url>/icon-64.png</url>
+      </icon>
+      <icon>
+        <mimetype>image/png</mimetype>
+        <width>128</width>
+        <height>128</height>
+        <depth>24</depth>
+        <url>/icon-128.png</url>
+      </icon>
+      <icon>
+        <mimetype>image/png</mimetype>
+        <width>256</width>
+        <height>256</height>
+        <depth>24</depth>
+        <url>/icon-256.png</url>
+      </icon>
+    </iconList>
+
+    <serviceList>
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:ContentDirectory:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:ContentDirectory</serviceId>
+        <SCPDURL>/dlna/scpd/contentDirectory.xml</SCPDURL>
+        <controlURL>/dlna/control/contentDirectory</controlURL>
+        <eventSubURL>/dlna/event/contentDirectory</eventSubURL>
+      </service>
+
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:ConnectionManager:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:ConnectionManager</serviceId>
+        <SCPDURL>/dlna/scpd/connectionManager.xml</SCPDURL>
+        <controlURL>/dlna/control/connectionManager</controlURL>
+        <eventSubURL>/dlna/event/connectionManager</eventSubURL>
+      </service>
+
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:AVTransport:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:AVTransport</serviceId>
+        <SCPDURL>/dlna/scpd/avTransport.xml</SCPDURL>
+        <controlURL>/dlna/control/avTransport</controlURL>
+        <eventSubURL>/dlna/event/avTransport</eventSubURL>
+      </service>
+    </serviceList>
+
+  </device>
+</root>`;
+}
+
+export function getContentDirectoryScpdXml() {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+  <specVersion><major>1</major><minor>0</minor></specVersion>
+  <actionList>
+    <action>
+      <name>GetSearchCapabilities</name>
+      <argumentList>
+        <argument><name>SearchCaps</name><direction>out</direction><relatedStateVariable>SearchCapabilities</relatedStateVariable></argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>GetSortCapabilities</name>
+      <argumentList>
+        <argument><name>SortCaps</name><direction>out</direction><relatedStateVariable>SortCapabilities</relatedStateVariable></argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>GetSystemUpdateID</name>
+      <argumentList>
+        <argument><name>Id</name><direction>out</direction><relatedStateVariable>SystemUpdateID</relatedStateVariable></argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>Browse</name>
+      <argumentList>
+        <argument><name>ObjectID</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_ObjectID</relatedStateVariable></argument>
+        <argument><name>BrowseFlag</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_BrowseFlag</relatedStateVariable></argument>
+        <argument><name>Filter</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_Filter</relatedStateVariable></argument>
+        <argument><name>StartingIndex</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_Index</relatedStateVariable></argument>
+        <argument><name>RequestedCount</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_Count</relatedStateVariable></argument>
+        <argument><name>SortCriteria</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_SortCriteria</relatedStateVariable></argument>
+        <argument><name>Result</name><direction>out</direction><relatedStateVariable>A_ARG_TYPE_Result</relatedStateVariable></argument>
+        <argument><name>NumberReturned</name><direction>out</direction><relatedStateVariable>A_ARG_TYPE_Count</relatedStateVariable></argument>
+        <argument><name>TotalMatches</name><direction>out</direction><relatedStateVariable>A_ARG_TYPE_Count</relatedStateVariable></argument>
+        <argument><name>UpdateID</name><direction>out</direction><relatedStateVariable>A_ARG_TYPE_UpdateID</relatedStateVariable></argument>
+      </argumentList>
+    </action>
+  </actionList>
+  <serviceStateTable>
+    <stateVariable sendEvents="yes"><name>SystemUpdateID</name><dataType>ui4</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>SearchCapabilities</name><dataType>string</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>SortCapabilities</name><dataType>string</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>A_ARG_TYPE_ObjectID</name><dataType>string</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>A_ARG_TYPE_Result</name><dataType>string</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>A_ARG_TYPE_BrowseFlag</name><dataType>string</dataType><allowedValueList><allowedValue>BrowseMetadata</allowedValue><allowedValue>BrowseDirectChildren</allowedValue></allowedValueList></stateVariable>
+    <stateVariable sendEvents="no"><name>A_ARG_TYPE_Filter</name><dataType>string</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>A_ARG_TYPE_SortCriteria</name><dataType>string</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>A_ARG_TYPE_Index</name><dataType>ui4</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>A_ARG_TYPE_Count</name><dataType>ui4</dataType></stateVariable>
+    <stateVariable sendEvents="no"><name>A_ARG_TYPE_UpdateID</name><dataType>ui4</dataType></stateVariable>
+  </serviceStateTable>
+</scpd>`;
+}
+
+export function getConnectionManagerScpdXml() {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+  <specVersion><major>1</major><minor>0</minor></specVersion>
+  <actionList>
+    <action>
+      <name>GetProtocolInfo</name>
+      <argumentList>
+        <argument><name>Source</name><direction>out</direction><relatedStateVariable>SourceProtocolInfo</relatedStateVariable></argument>
+        <argument><name>Sink</name><direction>out</direction><relatedStateVariable>SinkProtocolInfo</relatedStateVariable></argument>
+      </argumentList>
+    </action>
+  </actionList>
+  <serviceStateTable>
+    <stateVariable sendEvents="yes"><name>SourceProtocolInfo</name><dataType>string</dataType></stateVariable>
+    <stateVariable sendEvents="yes"><name>SinkProtocolInfo</name><dataType>string</dataType></stateVariable>
+  </serviceStateTable>
+</scpd>`;
+}
+
+export function getAvTransportScpdXml() {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+  <specVersion><major>1</major><minor>0</minor></specVersion>
+  <actionList>
+    <action><name>GetTransportInfo</name></action>
+  </actionList>
+  <serviceStateTable>
+    <stateVariable sendEvents="no"><name>TransportState</name><dataType>string</dataType></stateVariable>
+  </serviceStateTable>
+</scpd>`;
+}

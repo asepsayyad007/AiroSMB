@@ -1,0 +1,34 @@
+{
+  "name": "airo-smb",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Modern Home Server Web App for PC File Sharing and VLC/TV Media Streaming",
+  "main": "server.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server.js",
+    "start": "node server.js",
+    "dlna": "node simple_dlna.js"
+  },
+  "dependencies": {
+    "@cloud-cli/smb": "^1.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "ftp-srv": "^4.6.3",
+    "lucide-react": "^0.395.0",
+    "mime-types": "^2.1.35",
+    "multer": "^1.4.5-lts.1",
+    "node-smb-server": "^0.10.36",
+    "qrcode": "^1.5.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.3.1"
+  }
+}
