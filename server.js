@@ -326,6 +326,73 @@ app.get('/api/plex/feed', (req, res) => {
   }
 });
 
+// Mobile Multi-File Share Landing Page (/share?files=base64_1,base64_2...)
+app.get('/share', (req, res) => {
+  const rawPaths = req.query.files ? req.query.files.split(',') : [];
+  const files = [];
+
+  for (const encodedPath of rawPaths) {
+    try {
+      const decodedPath = Buffer.from(encodedPath, 'base64').toString('utf8');
+      if (fs.existsSync(decodedPath) && fs.statSync(decodedPath).isFile()) {
+        const name = path.basename(decodedPath);
+        const stat = fs.statSync(decodedPath);
+        const mimeType = mime.lookup(name) || 'application/octet-stream';
+        files.push({
+          name,
+          sizeMb: (stat.size / (1024 * 1024)).toFixed(1),
+          mimeType,
+          streamUrl: `/api/files/stream?path=${encodeURIComponent(decodedPath)}`,
+          downloadUrl: `/api/files/download?path=${encodeURIComponent(decodedPath)}`
+        });
+      }
+    } catch (e) {
+      // Ignore invalid paths
+    }
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AiroShare - Shared Files from PC</title>
+  <link rel="icon" type="image/svg+xml" href="/AiroShare.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0e090a; color: #fcfcfc; margin: 0; padding: 16px; }
+    .card { background: #1b1013; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 16px; background: linear-gradient(135deg, #FF5D0B, #E02A24); color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.88rem; width: 100%; box-sizing: border-box; text-align: center; }
+    .file-item { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+    .file-name { font-weight: 600; font-size: 0.92rem; word-break: break-all; }
+    .file-meta { font-size: 0.78rem; color: #a6989a; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="/AiroShare.svg" width="36" height="36" style="border-radius: 8px;" />
+    <div>
+      <h2 style="margin: 0; font-size: 1.1rem;">AiroShare PC Share</h2>
+      <span style="font-size: 0.78rem; color: #a6989a;">${files.length} Shared File(s) from PC</span>
+    </div>
+  </div>
+
+  ${files.length === 0 ? '<div class="card"><p style="color:#a6989a;">No shared files found or link expired.</p></div>' : ''}
+
+  ${files.map(f => `
+    <div class="card file-item">
+      <div class="file-name">${f.name}</div>
+      <div class="file-meta">Size: ${f.sizeMb} MB</div>
+      <a href="${f.downloadUrl}" class="btn" download>Download File</a>
+    </div>
+  `).join('')}
+</body>
+</html>`;
+
+  res.send(html);
+});
+
 // API: UPnP / DLNA Device Description XML fallback alias
 app.get('/dlna/device.xml', (req, res) => {
   res.redirect('/dlna/description.xml');

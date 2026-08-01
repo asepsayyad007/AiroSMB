@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   HardDrive, Wifi, QrCode, Tv, Folder, File, Film, Music, Image as ImageIcon, FileText, Archive,
   Copy, Check, Server, Settings, Search, Upload, ArrowLeft, Play, ExternalLink, 
-  Download, RefreshCw, ChevronRight, Power
+  Download, RefreshCw, ChevronRight, Power, Smartphone, CheckSquare, Square
 } from 'lucide-react';
 
 export default function Dashboard({ networkInfo, onRefreshNetwork }) {
@@ -22,6 +22,14 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // Multi-File Selection & Share to Phone State
+  const [selectedFilePaths, setSelectedFilePaths] = useState([]);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareQrUrl, setShareQrUrl] = useState('');
+  const [shareWebUrl, setShareWebUrl] = useState('');
+  const [sharedFilesList, setSharedFilesList] = useState([]);
+  const [copiedLink, setCopiedLink] = useState(false);
   
   // Upload modal & player state
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -35,7 +43,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const hostname = networkInfo?.hostname || 'PC';
   const serverUrl = networkInfo?.serverUrl || `http://${primaryIp}:${port}`;
   const ftpUrl = `ftp://${primaryIp}:2121`;
-  const m3uUrl = `${serverUrl}/playlist.m3u`;
   const storage = networkInfo?.storage || { total: 0, free: 0, used: 0, percentUsed: 0 };
 
   const formatGb = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
@@ -77,6 +84,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const fetchDirectory = async (pathUrl = '') => {
     try {
       setLoadingFiles(true);
+      setSelectedFilePaths([]);
       const res = await fetch(`/api/files/browse?path=${encodeURIComponent(pathUrl)}`);
       const data = await res.json();
       if (res.ok) {
@@ -125,6 +133,46 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
     }
   };
 
+  // Toggle file selection checkbox
+  const toggleSelectFile = (filePath) => {
+    setSelectedFilePaths(prev => 
+      prev.includes(filePath) ? prev.filter(p => p !== filePath) : [...prev, filePath]
+    );
+  };
+
+  // Select all or clear selection
+  const toggleSelectAll = () => {
+    if (selectedFilePaths.length === filteredFiles.length) {
+      setSelectedFilePaths([]);
+    } else {
+      setSelectedFilePaths(filteredFiles.map(f => f.path));
+    }
+  };
+
+  // Open Multi-File "Send to Phone" QR Modal
+  const openShareModal = async (targetFilePaths = selectedFilePaths) => {
+    if (!targetFilePaths || targetFilePaths.length === 0) return;
+
+    const selectedFilesObj = files.filter(f => targetFilePaths.includes(f.path));
+    setSharedFilesList(selectedFilesObj);
+
+    const encodedPaths = targetFilePaths.map(p => btoa(p)).join(',');
+    const fullShareUrl = `http://${primaryIp}:${port}/share?files=${encodedPaths}`;
+    setShareWebUrl(fullShareUrl);
+
+    try {
+      const qrRes = await fetch(`/api/qrcode?url=${encodeURIComponent(fullShareUrl)}`);
+      if (qrRes.ok) {
+        const blob = await qrRes.blob();
+        setShareQrUrl(URL.createObjectURL(blob));
+      }
+    } catch (err) {
+      console.error('Error generating QR code:', err);
+    }
+
+    setShowShareModal(true);
+  };
+
   // Upload handler
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -167,8 +215,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
     const matchesCategory = selectedCategory === 'all' || file.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const pathParts = currentPath ? currentPath.split(/[/\\]/).filter(Boolean) : [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1280px', margin: '0 auto' }}>
@@ -262,7 +308,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
 
       </div>
 
-      {/* 3. Core Shared Directory & Integrated File Browser Section (Strict List View Only) */}
+      {/* 3. Core Shared Directory & Integrated File Browser Section */}
       <div className="pro-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
         {/* Directory Switcher Bar */}
@@ -380,6 +426,25 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
 
         </div>
 
+        {/* Multi-Select Floating Action Banner (Appears when 1+ files selected) */}
+        {selectedFilePaths.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 93, 11, 0.12)', border: '1px solid var(--accent-orange)', padding: '10px 16px', borderRadius: 'var(--radius-md)' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-orange)' }}>
+              {selectedFilePaths.length} file(s) selected
+            </span>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-pro-secondary" style={{ padding: '5px 10px', fontSize: '0.78rem' }} onClick={() => setSelectedFilePaths([])}>
+                Clear Selection
+              </button>
+
+              <button className="btn-pro-primary" style={{ padding: '5px 14px', fontSize: '0.78rem' }} onClick={() => openShareModal(selectedFilePaths)}>
+                <Smartphone size={14} /> Send {selectedFilePaths.length} to Phone
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Directory Files Output (Strict List View Only) */}
         {loadingFiles ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -422,11 +487,23 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               </div>
             )}
 
-            {/* Files List View */}
+            {/* Files List View with Multi-Select Checkboxes */}
             <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '8px' }}>
-                Files ({filteredFiles.length})
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  Files ({filteredFiles.length})
+                </span>
+
+                {filteredFiles.length > 0 && (
+                  <button 
+                    onClick={toggleSelectAll} 
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-orange)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    {selectedFilePaths.length === filteredFiles.length ? <CheckSquare size={13} /> : <Square size={13} />}
+                    {selectedFilePaths.length === filteredFiles.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                )}
+              </div>
 
               {filteredFiles.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
@@ -435,6 +512,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               ) : (
                 <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                   {filteredFiles.map((file, idx) => {
+                    const isSelected = selectedFilePaths.includes(file.path);
                     const absoluteStreamUrl = `http://${primaryIp}:${port}${file.streamUrl}`;
                     const vlcUrl = `vlc://${absoluteStreamUrl}`;
 
@@ -447,11 +525,20 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                           justifyContent: 'space-between', 
                           padding: '10px 14px', 
                           borderBottom: idx < filteredFiles.length - 1 ? '1px solid var(--border-color)' : 'none',
-                          gap: '12px'
+                          gap: '12px',
+                          background: isSelected ? 'rgba(255, 93, 11, 0.06)' : 'transparent'
                         }}
                         className="list-row-hover"
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, overflow: 'hidden' }}>
+                        {/* Checkbox & File Info */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, overflow: 'hidden' }}>
+                          <input 
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectFile(file.path)}
+                            style={{ cursor: 'pointer', accentColor: 'var(--accent-orange)', width: '16px', height: '16px' }}
+                          />
+
                           <div style={{ color: 'var(--accent-orange)' }}>{getFileIcon(file.category)}</div>
                           <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</span>
                         </div>
@@ -460,7 +547,17 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                           {(file.size / (1024 * 1024)).toFixed(1)} MB
                         </div>
 
+                        {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: '6px' }}>
+                          <button 
+                            className="btn-pro-secondary" 
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', color: 'var(--accent-orange)', borderColor: 'rgba(255, 93, 11, 0.3)' }} 
+                            onClick={() => openShareModal([file.path])}
+                            title="Send single file to phone"
+                          >
+                            <Smartphone size={12} /> Send to Phone
+                          </button>
+
                           {(file.category === 'video' || file.category === 'audio') && (
                             <button className="btn-pro-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setActiveMediaFile(file)}>
                               <Play size={12} /> Play
@@ -484,6 +581,65 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
         )}
 
       </div>
+
+      {/* Multi-File "Send to Phone" QR Modal */}
+      {showShareModal && (
+        <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
+          <div className="modal-card" style={{ maxWidth: '420px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            
+            <div style={{ marginBottom: '8px' }}>
+              <Smartphone size={36} color="var(--accent-orange)" />
+            </div>
+
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '4px' }}>
+              Send {sharedFilesList.length} File(s) to Phone
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
+              Scan QR code with mobile camera to view & download on Wi-Fi:
+            </p>
+
+            {/* QR Code Container */}
+            {shareQrUrl && (
+              <div style={{ background: '#fff', padding: '10px', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '14px' }}>
+                <img src={shareQrUrl} alt="Multi-File Share QR" style={{ width: '180px', height: '180px', display: 'block' }} />
+              </div>
+            )}
+
+            {/* List of Files Being Shared */}
+            <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '10px', maxHeight: '140px', overflowY: 'auto', textAlign: 'left', marginBottom: '14px' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                Selected Items ({sharedFilesList.length}):
+              </span>
+              {sharedFilesList.map((f, i) => (
+                <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{f.name}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{(f.size / (1024 * 1024)).toFixed(1)}MB</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                className="btn-pro-secondary" 
+                style={{ flex: 1, justifyContent: 'center' }} 
+                onClick={() => {
+                  navigator.clipboard.writeText(shareWebUrl);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }}
+              >
+                {copiedLink ? <Check size={13} /> : <Copy size={13} />}
+                {copiedLink ? 'Copied Link' : 'Copy Mobile Link'}
+              </button>
+
+              <button className="btn-pro-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setShowShareModal(false)}>
+                Done
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Upload File Modal */}
       {showUploadModal && (
