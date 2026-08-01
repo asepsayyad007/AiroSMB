@@ -200,7 +200,7 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
               )}
             </div>
 
-            <button type="submit" className="btn-pro-primary" disabled={savingPath} style={{ justifyContent: 'center' }}>
+            <button type="submit" className="btn-pro-primary" disabled={savingPath} style={{ width: 'max-content', padding: '6px 16px', fontSize: '0.8rem' }}>
               {savingPath ? 'Saving...' : 'Update Root Directory'}
             </button>
 
@@ -243,7 +243,7 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
               </span>
             </div>
 
-            <button type="submit" className="btn-pro-primary" disabled={savingFtp} style={{ justifyContent: 'center' }}>
+            <button type="submit" className="btn-pro-primary" disabled={savingFtp} style={{ width: 'max-content', padding: '6px 16px', fontSize: '0.8rem' }}>
               {savingFtp ? 'Applying...' : 'Save FTP Port Settings'}
             </button>
 
