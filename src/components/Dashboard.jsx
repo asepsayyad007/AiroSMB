@@ -293,7 +293,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
         {/* File Browser Controls Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           
-          {/* Breadcrumb Trail */}
+          {/* Breadcrumb Trail (Strictly Scoped to Shared Root) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
             {parentPath && (
               <button onClick={() => fetchDirectory(parentPath)} className="btn-pro-secondary" style={{ padding: '3px 8px', fontSize: '0.78rem', marginRight: '6px' }}>
@@ -307,14 +307,33 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
             >
               Shared Root
             </span>
-            {pathParts.map((part, index) => (
-              <React.Fragment key={index}>
-                <ChevronRight size={12} color="var(--text-muted)" />
-                <span style={{ fontSize: '0.82rem', color: index === pathParts.length - 1 ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: index === pathParts.length - 1 ? 600 : 400 }}>
-                  {part}
-                </span>
-              </React.Fragment>
-            ))}
+            {(() => {
+              const rootDir = networkInfo?.rootDirectory || '';
+              const relPath = (currentPath && rootDir && currentPath.toLowerCase().startsWith(rootDir.toLowerCase()))
+                ? currentPath.substring(rootDir.length).replace(/^[/\\]+/, '')
+                : '';
+              const subParts = relPath ? relPath.split(/[/\\]/).filter(Boolean) : [];
+
+              return subParts.map((part, index) => {
+                const subPath = rootDir + '\\' + subParts.slice(0, index + 1).join('\\');
+                return (
+                  <React.Fragment key={index}>
+                    <ChevronRight size={12} color="var(--text-muted)" />
+                    <span 
+                      style={{ 
+                        fontSize: '0.82rem', 
+                        color: index === subParts.length - 1 ? 'var(--text-main)' : 'var(--text-muted)', 
+                        fontWeight: index === subParts.length - 1 ? 600 : 400,
+                        cursor: index === subParts.length - 1 ? 'default' : 'pointer'
+                      }}
+                      onClick={() => index < subParts.length - 1 && fetchDirectory(subPath)}
+                    >
+                      {part}
+                    </span>
+                  </React.Fragment>
+                );
+              });
+            })()}
           </div>
 
           {/* Search, Categories & Action Buttons */}

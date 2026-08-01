@@ -26,14 +26,9 @@ const servicesState = {
   dlna: true
 };
 
-// Set up default initial directory (Prioritizing Downloads/Video)
-const defaultVideoDir = path.join(os.homedir(), 'Downloads', 'Video');
-const defaultVideosDir = path.join(os.homedir(), 'Downloads', 'videos');
+// Set up default initial directory (Default: C:\Users\<user>\Downloads)
 const defaultDownloadsDir = path.join(os.homedir(), 'Downloads');
-
-let rootDirectory = fs.existsSync(defaultVideoDir) ? defaultVideoDir 
-                  : (fs.existsSync(defaultVideosDir) ? defaultVideosDir 
-                  : (fs.existsSync(defaultDownloadsDir) ? defaultDownloadsDir : os.homedir()));
+let rootDirectory = fs.existsSync(defaultDownloadsDir) ? defaultDownloadsDir : os.homedir();
 
 if (!fs.existsSync(rootDirectory)) {
   try {
@@ -387,11 +382,20 @@ app.post('/api/network/set-root', async (req, res) => {
   res.status(400).json({ error: 'Invalid directory path provided' });
 });
 
-// API: Browse Directory & Files
+// API: Browse Directory & Files (Enforcing Strict Shared Root Boundary)
 app.get('/api/files/browse', (req, res) => {
   try {
     let targetPath = req.query.path ? decodeURIComponent(req.query.path) : rootDirectory;
     
+    // Resolve absolute path
+    targetPath = path.resolve(targetPath);
+
+    // Boundary Enforcement: Prevent browsing outside or above rootDirectory
+    const relative = path.relative(rootDirectory, targetPath);
+    if (relative.startsWith('..') || relative.startsWith('/') || relative.startsWith('\\')) {
+      targetPath = rootDirectory;
+    }
+
     if (!fs.existsSync(targetPath)) {
       targetPath = rootDirectory;
     }
@@ -445,7 +449,15 @@ app.get('/api/files/browse', (req, res) => {
     directories.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     files.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-    const parentPath = path.dirname(targetPath) !== targetPath ? path.dirname(targetPath) : null;
+    // Compute parent directory ONLY if targetPath is strictly inside rootDirectory and NOT equal to rootDirectory
+    let parentPath = null;
+    if (targetPath !== rootDirectory) {
+      const parent = path.dirname(targetPath);
+      const parentRelative = path.relative(rootDirectory, parent);
+      if (!parentRelative.startsWith('..')) {
+        parentPath = parent;
+      }
+    }
 
     res.json({
       currentPath: targetPath,

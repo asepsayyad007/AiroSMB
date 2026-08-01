@@ -23,7 +23,7 @@ const dlnaConfig = {
   enableDlna: true,
   enableLogging: true,
 
-  mediaRoot: 'C:\\Users\\aseps\\Downloads\\Video',
+  mediaRoot: 'C:\\Users\\aseps\\Downloads',
   
   // Supported MIME types map for UPnP protocolInfo
   mimeProtocolInfoMap: {
