@@ -41,11 +41,11 @@ export default function App() {
         {/* Brand Header */}
         <div className="brand-header">
           <div className="brand-icon-wrapper">
-            <Radio className="brand-icon" />
+            <Radio size={18} />
           </div>
           <div>
             <h1 className="brand-title">AiroSMB</h1>
-            <p className="brand-subtitle">Home Server & Media Engine</p>
+            <p className="brand-subtitle">Home Server & Media</p>
           </div>
         </div>
 
@@ -94,11 +94,11 @@ export default function App() {
 
         {/* Server Status Footer Card */}
         <div className="server-status-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--accent-emerald)', fontWeight: 600, marginBottom: '6px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-emerald)' }}></span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--accent-emerald)', fontWeight: 600, marginBottom: '4px' }}>
+            <span className="status-dot"></span>
             <span>Server Active</span>
           </div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.82rem', color: 'var(--text-main)', background: 'rgba(255, 255, 255, 0.05)', padding: '6px 10px', borderRadius: 'var(--radius-sm)' }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
             {primaryIp}:{port}
           </div>
         </div>
@@ -112,24 +112,20 @@ export default function App() {
         <header className="top-bar">
           <div className="top-title-area">
             <h2>
-              {activeTab === 'dashboard' && 'Dashboard Overview'}
-              {activeTab === 'explorer' && 'File Explorer & Shared Folders'}
-              {activeTab === 'vlc' && 'VLC Player & Smart TV Hub'}
-              {activeTab === 'settings' && 'Server Configuration'}
+              {activeTab === 'dashboard' && 'Dashboard'}
+              {activeTab === 'explorer' && 'File Explorer'}
+              {activeTab === 'vlc' && 'VLC & TV Streaming'}
+              {activeTab === 'settings' && 'Settings'}
             </h2>
           </div>
 
           <div className="top-actions">
             <span className="status-pill status-active">
-              <Wifi size={13} /> {primaryIp}
+              <Wifi size={12} /> {primaryIp}
             </span>
 
             <button className="btn-pro-secondary" onClick={() => setShowTopQrModal(true)}>
-              <QrCode size={15} /> Mobile Pair
-            </button>
-
-            <button className="btn-pro-primary" onClick={() => setActiveTab('explorer')}>
-              <Folder size={15} /> Shared Files
+              <QrCode size={14} /> Pair Mobile
             </button>
           </div>
         </header>
@@ -179,15 +175,15 @@ export default function App() {
       {/* Mobile Pairing Modal */}
       {showTopQrModal && networkInfo?.qrDataUrl && (
         <div className="modal-overlay" onClick={() => setShowTopQrModal(false)}>
-          <div className="modal-card" style={{ maxWidth: '380px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '6px' }}>Mobile Connection</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Scan using smartphone camera to access files on Wi-Fi:
+          <div className="modal-card" style={{ maxWidth: '360px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '6px' }}>Mobile Connection</h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
+              Scan QR code using smartphone camera to open dashboard on Wi-Fi:
             </p>
-            <div style={{ background: '#fff', padding: '12px', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '16px' }}>
-              <img src={networkInfo.qrDataUrl} alt="Pairing QR Code" style={{ width: '200px', height: '200px', display: 'block' }} />
+            <div style={{ background: '#fff', padding: '10px', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '14px' }}>
+              <img src={networkInfo.qrDataUrl} alt="Pairing QR Code" style={{ width: '180px', height: '180px', display: 'block' }} />
             </div>
-            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem', color: 'var(--accent-cyan)', marginBottom: '16px' }}>
+            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.82rem', color: 'var(--accent-cyan)', marginBottom: '16px' }}>
               {serverUrl}
             </p>
             <button className="btn-pro-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowTopQrModal(false)}>
