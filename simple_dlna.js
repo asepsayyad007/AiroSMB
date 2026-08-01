@@ -12,6 +12,7 @@ if (!fs.existsSync(defaultVideosDir)) {
   try { fs.mkdirSync(defaultVideosDir, { recursive: true }); } catch (e) {}
 }
 
+const args = process.argv.slice(2);
 const mediaDir = args[0] ? path.resolve(args[0]) : (fs.existsSync(defaultVideosDir) ? defaultVideosDir : path.join(os.homedir(), 'Downloads'));
 const PORT = parseInt(args[1], 10) || 3000;
 
