@@ -41,9 +41,9 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   const primaryIp = networkInfo?.primaryIp || '192.168.x.x';
   const port = networkInfo?.port || 3000;
   const hostname = networkInfo?.hostname || 'AsepPC';
-  const mdnsHost = networkInfo?.mdnsHost || `Airoshare-${hostname}.local`;
-  const serverUrl = networkInfo?.localDomainUrl || `http://${mdnsHost}:${port}`;
-  const ftpUrl = `ftp://${mdnsHost}:2121`;
+  const mdnsHost = networkInfo?.mdnsHost || `${hostname.toLowerCase()}.local`;
+  const serverUrl = networkInfo?.serverUrl || `http://${primaryIp}:${port}`;
+  const ftpUrl = `ftp://${primaryIp}:2121`;
   const storage = networkInfo?.storage || { total: 0, free: 0, used: 0, percentUsed: 0 };
 
   const formatGb = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
@@ -158,7 +158,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
     setSharedFilesList(selectedFilesObj);
 
     const encodedPaths = targetFilePaths.map(p => btoa(p)).join(',');
-    const fullShareUrl = `http://${mdnsHost}:${port}/share?files=${encodedPaths}`;
+    const fullShareUrl = `http://${primaryIp}:${port}/share?files=${encodedPaths}`;
     setShareWebUrl(fullShareUrl);
 
     try {

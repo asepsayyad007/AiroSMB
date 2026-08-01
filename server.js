@@ -402,11 +402,11 @@ app.get('/dlna/device.xml', (req, res) => {
 app.get('/api/network/info', async (req, res) => {
   try {
     const hostNameStr = os.hostname();
-    const mdnsHost = `Airoshare-${hostNameStr}.local`;
+    const mdnsHost = `${hostNameStr.toLowerCase()}.local`;
     const localDomainUrl = `http://${mdnsHost}:${PORT}`;
     const serverUrl = `http://${primaryIp}:${PORT}`;
 
-    const qrDataUrl = await QRCode.toDataURL(localDomainUrl, { margin: 1, width: 300 });
+    const qrDataUrl = await QRCode.toDataURL(serverUrl, { margin: 1, width: 300 });
 
     let storageInfo = { total: 0, free: 0, used: 0, percentUsed: 0 };
     try {
@@ -641,7 +641,7 @@ app.get('*', (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT, async () => {
   console.log(`\n==================================================`);
   console.log(`AiroShare Home Server running on port ${PORT}`);
   console.log(`Local access: http://localhost:${PORT}`);
@@ -651,6 +651,8 @@ app.listen(PORT, '0.0.0.0', async () => {
   ips.forEach(ip => {
     console.log(`LAN Network stream: http://${ip.address}:${PORT}`);
   });
+  console.log(`Hostname access:   http://${os.hostname().toLowerCase()}:${PORT}`);
+  console.log(`mDNS access:       http://${os.hostname().toLowerCase()}.local:${PORT}`);
 
   try {
     await mediaStore.scanMedia(rootDirectory);
