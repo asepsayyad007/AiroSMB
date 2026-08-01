@@ -1,6 +1,6 @@
 /**
- * Real-time Active Client Tracker for AiroSMB
- * Tracks DLNA, HTTP, SMB, and FTP connected devices
+ * Real-time Active Client Tracker for AiroShare
+ * Tracks DLNA, HTTP, and FTP connected devices
  */
 
 class ClientTracker {

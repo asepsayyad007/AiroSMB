@@ -108,7 +108,7 @@ async function verifyCompleteDlna() {
   // Test 6: Presentation Page HTML
   try {
     const res = await getUrl('/dlna/presentation');
-    if (res.statusCode === 200 && res.data.includes('AiroSMB DLNA')) {
+    if (res.statusCode === 200 && res.data.includes('AiroShare DLNA')) {
       console.log('[PASS] TEST 6: DLNA Presentation HTML Dashboard (/dlna/presentation)');
       passed++;
     }

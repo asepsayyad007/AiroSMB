@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, QrCode, Settings as SettingsIcon, Wifi, Users } from 'lucide-react';
+import { LayoutDashboard, QrCode, Settings as SettingsIcon, Wifi, Users, RefreshCw } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ActiveClients from './components/ActiveClients';
 import Settings from './components/Settings';
@@ -25,6 +25,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [networkInfo, setNetworkInfo] = useState(null);
   const [showTopQrModal, setShowTopQrModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchNetworkInfo = async () => {
     try {
@@ -40,8 +41,6 @@ export default function App() {
 
   useEffect(() => {
     fetchNetworkInfo();
-    const interval = setInterval(fetchNetworkInfo, 3000);
-    return () => clearInterval(interval);
   }, []);
 
   const primaryIp = networkInfo?.primaryIp || detectBrowserIp();
@@ -130,6 +129,20 @@ export default function App() {
             <span className="status-pill status-active">
               <Wifi size={12} /> {connectionType} {primaryIp ? `(${primaryIp})` : 'Loading IP...'}
             </span>
+
+            <button 
+              className="btn-pro-secondary" 
+              onClick={async () => {
+                setRefreshing(true);
+                await fetchNetworkInfo();
+                setRefreshing(false);
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              title="Refresh Network Configuration"
+            >
+              <RefreshCw size={12} className={refreshing ? 'spin' : ''} />
+              <span>Refresh IP</span>
+            </button>
 
             <button className="btn-pro-secondary" onClick={() => setShowTopQrModal(true)}>
               <QrCode size={14} /> Pair Mobile

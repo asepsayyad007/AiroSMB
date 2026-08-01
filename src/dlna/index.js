@@ -120,23 +120,23 @@ router.get('/presentation', (req, res) => {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AiroSMB DLNA Media Server Presentation</title>
+  <title>AiroShare DLNA Media Server Presentation</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; background: #090d16; color: #f8fafc; margin: 0; padding: 32px; }
     .card { background: rgba(16,24,40,0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-    h1 { color: #00f2fe; margin-top: 0; }
-    .badge { background: rgba(16,185,129,0.2); color: #10b981; padding: 4px 10px; border-radius: 99px; font-size: 0.8rem; font-weight: bold; }
+    h1 { color: #FF5D0B; margin-top: 0; }
+    .badge { background: rgba(255,93,11,0.2); color: #FF5D0B; padding: 4px 10px; border-radius: 99px; font-size: 0.8rem; font-weight: bold; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.88rem; }
     th { color: #94a3b8; }
-    a { color: #00f2fe; text-decoration: none; }
+    a { color: #FF5D0B; text-decoration: none; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>📡 AiroSMB DLNA & UPnP AV Media Server</h1>
+    <h1>📡 AiroShare DLNA & UPnP AV Media Server</h1>
     <p><span class="badge">SSDP Discovery Active</span> <span class="badge">DLNA 1.5 Compliant</span></p>
-    <p>Server Name: <strong>AiroSMB Plex & Media Engine</strong> | Friendly Name: <strong>${dlnaConfig.friendlyName}</strong></p>
+    <p>Server Name: <strong>AiroShare Media Engine</strong> | Friendly Name: <strong>${dlnaConfig.friendlyName}</strong></p>
     <p>Media Items Loaded: <strong>${mediaCount}</strong> | Server Base URL: <strong>${baseUrl}</strong></p>
   </div>
 

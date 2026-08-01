@@ -200,7 +200,7 @@ class SsdpServer {
             `DATE: ${new Date().toUTCString()}\r\n` +
             `EXT:\r\n` +
             `LOCATION: ${location}\r\n` +
-            `SERVER: Windows/10 UPnP/1.0 AiroSMB/1.0\r\n` +
+            `SERVER: Windows/10 UPnP/1.0 AiroShare/1.0\r\n` +
             `ST: ${item.nt}\r\n` +
             `USN: ${item.usn}\r\n` +
             `\r\n`;

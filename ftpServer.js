@@ -16,7 +16,7 @@ class AiroFtpServer {
       this.ftpServer = new FtpServer({
         url: `ftp://${this.host}:${this.port}`,
         anonymous: true,
-        greeting: ['Welcome to AiroSMB Home Server FTP Engine']
+        greeting: ['Welcome to AiroShare Home Server FTP Engine']
       });
 
       this.ftpServer.on('login', ({ connection, username, password }, resolve, reject) => {
@@ -29,10 +29,10 @@ class AiroFtpServer {
 
       await this.ftpServer.listen();
       this.isRunning = true;
-      console.log(`[AiroSMB] Native FTP Server listening on port ${this.port} (Anonymous Auth Allowed)`);
+      console.log(`[AiroShare] Native FTP Server listening on port ${this.port} (Anonymous Auth Allowed)`);
       return true;
     } catch (err) {
-      console.warn(`[AiroSMB FTP Engine Warning] Port ${this.port} unavailable: ${err.message}`);
+      console.warn(`[AiroShare FTP Engine Warning] Port ${this.port} unavailable: ${err.message}`);
       this.isRunning = false;
       return false;
     }
@@ -42,7 +42,7 @@ class AiroFtpServer {
     if (this.ftpServer && this.isRunning) {
       await this.ftpServer.close();
       this.isRunning = false;
-      console.log('[AiroSMB] Native FTP Server stopped');
+      console.log('[AiroShare] Native FTP Server stopped');
     }
     return true;
   }

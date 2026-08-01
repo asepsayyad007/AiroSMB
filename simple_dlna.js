@@ -90,7 +90,7 @@ const primaryIp = getPrimaryIp();
 const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log('\n==================================================');
   console.log(`AiroShare High-Performance Gigabit DLNA Media Server`);
-  console.log(`Sharing Path: C:\\Users\\aseps\\Downloads\\Video`);
+  console.log(`Sharing Path: ${mediaDir}`);
   console.log(`LAN Web URL:  http://${primaryIp}:${PORT}`);
   console.log(`Device XML:   http://${primaryIp}:${PORT}/dlna/description.xml`);
   console.log(`Dashboard:    http://${primaryIp}:${PORT}/dlna/presentation`);
