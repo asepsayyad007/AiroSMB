@@ -264,6 +264,12 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
         </p>
       </div>
 
+      {/* Installed Version Footer Info */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '14px', marginTop: '10px' }}>
+        <span>AiroShare Media & File Server Platform</span>
+        <span>Version: <strong style={{ color: 'var(--accent-orange)' }}>v{networkInfo?.version || '1.2.0'}</strong></span>
+      </div>
+
     </div>
   );
 }

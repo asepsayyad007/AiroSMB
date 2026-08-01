@@ -20,6 +20,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 let ftpPort = process.env.FTP_PORT || 2121;
 
+const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+const VERSION = pkg.version;
+
 // Service Toggles State (3 Active Services)
 const servicesState = {
   http: true,
@@ -446,7 +449,8 @@ app.get('/api/network/info', async (req, res) => {
       port: PORT,
       serverUrl,
       qrDataUrl,
-      storage: storageInfo
+      storage: storageInfo,
+      version: VERSION
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
