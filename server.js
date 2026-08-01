@@ -401,11 +401,12 @@ app.get('/dlna/device.xml', (req, res) => {
 // API: Get Network Info & Storage Stats
 app.get('/api/network/info', async (req, res) => {
   try {
-    const ips = getLocalIpAddresses();
-    const primaryIp = ips.length > 0 ? ips[0].address : 'localhost';
+    const hostNameStr = os.hostname();
+    const mdnsHost = `Airoshare-${hostNameStr}.local`;
+    const localDomainUrl = `http://${mdnsHost}:${PORT}`;
     const serverUrl = `http://${primaryIp}:${PORT}`;
 
-    const qrDataUrl = await QRCode.toDataURL(serverUrl, { margin: 1, width: 300 });
+    const qrDataUrl = await QRCode.toDataURL(localDomainUrl, { margin: 1, width: 300 });
 
     let storageInfo = { total: 0, free: 0, used: 0, percentUsed: 0 };
     try {
@@ -422,7 +423,9 @@ app.get('/api/network/info', async (req, res) => {
     }
 
     res.json({
-      hostname: os.hostname(),
+      hostname: hostNameStr,
+      mdnsHost,
+      localDomainUrl,
       platform: os.platform(),
       rootDirectory,
       ips,

@@ -28,7 +28,9 @@ export default function App() {
 
   const primaryIp = networkInfo?.primaryIp || '192.168.x.x';
   const port = networkInfo?.port || 3000;
-  const serverUrl = networkInfo?.serverUrl || `http://${primaryIp}:${port}`;
+  const hostname = networkInfo?.hostname || 'AsepPC';
+  const mdnsHost = networkInfo?.mdnsHost || `Airoshare-${hostname}.local`;
+  const serverUrl = networkInfo?.localDomainUrl || `http://${mdnsHost}:${port}`;
 
   return (
     <div className="app-container">
@@ -86,8 +88,8 @@ export default function App() {
             <span className="status-dot"></span>
             <span>Server Active</span>
           </div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            {primaryIp}:{port}
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            {mdnsHost}:{port}
           </div>
         </div>
 
@@ -108,7 +110,7 @@ export default function App() {
 
           <div className="top-actions">
             <span className="status-pill status-active">
-              <Wifi size={12} /> {primaryIp}
+              <Wifi size={12} /> {mdnsHost}
             </span>
 
             <button className="btn-pro-secondary" onClick={() => setShowTopQrModal(true)}>
