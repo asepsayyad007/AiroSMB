@@ -7,12 +7,11 @@ import Settings from './components/Settings';
 import MediaPlayerModal from './components/MediaPlayerModal';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'explorer' | 'vlc' | 'settings'
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [networkInfo, setNetworkInfo] = useState(null);
   const [activeMediaFile, setActiveMediaFile] = useState(null);
   const [showTopQrModal, setShowTopQrModal] = useState(false);
 
-  // Fetch host network & system info
   const fetchNetworkInfo = async () => {
     try {
       const res = await fetch('/api/network/info');
@@ -95,12 +94,12 @@ export default function App() {
 
         {/* Server Status Footer Card */}
         <div className="server-status-card">
-          <div className="status-indicator">
-            <div className="pulse-dot"></div>
-            <span>Home LAN Server Active</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--accent-emerald)', fontWeight: 600, marginBottom: '6px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-emerald)' }}></span>
+            <span>Server Active</span>
           </div>
-          <div className="server-ip-text">
-            <span>{primaryIp}:{port}</span>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.82rem', color: 'var(--text-main)', background: 'rgba(255, 255, 255, 0.05)', padding: '6px 10px', borderRadius: 'var(--radius-sm)' }}>
+            {primaryIp}:{port}
           </div>
         </div>
 
@@ -113,26 +112,24 @@ export default function App() {
         <header className="top-bar">
           <div className="top-title-area">
             <h2>
-              {activeTab === 'dashboard' && 'Server Overview & Analytics'}
-              {activeTab === 'explorer' && 'PC Shared Files & Explorer'}
-              {activeTab === 'vlc' && 'VLC Player & Smart TV Streaming'}
-              {activeTab === 'settings' && 'AiroSMB Server Settings'}
+              {activeTab === 'dashboard' && 'Dashboard Overview'}
+              {activeTab === 'explorer' && 'File Explorer & Shared Folders'}
+              {activeTab === 'vlc' && 'VLC Player & Smart TV Hub'}
+              {activeTab === 'settings' && 'Server Configuration'}
             </h2>
           </div>
 
           <div className="top-actions">
-            <span className="badge">
-              <Wifi size={14} /> {primaryIp}
+            <span className="status-pill status-active">
+              <Wifi size={13} /> {primaryIp}
             </span>
 
-            <button className="btn-secondary" onClick={() => setShowTopQrModal(true)}>
-              <QrCode size={16} />
-              Pair Mobile
+            <button className="btn-pro-secondary" onClick={() => setShowTopQrModal(true)}>
+              <QrCode size={15} /> Mobile Pair
             </button>
 
-            <button className="btn-primary" onClick={() => setActiveTab('explorer')}>
-              <Folder size={16} />
-              Shared Files
+            <button className="btn-pro-primary" onClick={() => setActiveTab('explorer')}>
+              <Folder size={15} /> Shared Files
             </button>
           </div>
         </header>
@@ -182,19 +179,19 @@ export default function App() {
       {/* Mobile Pairing Modal */}
       {showTopQrModal && networkInfo?.qrDataUrl && (
         <div className="modal-overlay" onClick={() => setShowTopQrModal(false)}>
-          <div className="modal-card" style={{ maxWidth: '400px', textCenter: 'center' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>Mobile & TV Quick Pair</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Connect your phone or TV to your PC files instantly on Wi-Fi:
+          <div className="modal-card" style={{ maxWidth: '380px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '6px' }}>Mobile Connection</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Scan using smartphone camera to access files on Wi-Fi:
             </p>
-            <div style={{ background: '#fff', padding: '16px', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '20px' }}>
-              <img src={networkInfo.qrDataUrl} alt="Pairing QR Code" style={{ width: '220px', height: '220px', display: 'block' }} />
+            <div style={{ background: '#fff', padding: '12px', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '16px' }}>
+              <img src={networkInfo.qrDataUrl} alt="Pairing QR Code" style={{ width: '200px', height: '200px', display: 'block' }} />
             </div>
-            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem', color: 'var(--accent-cyan)', marginBottom: '20px' }}>
+            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.85rem', color: 'var(--accent-cyan)', marginBottom: '16px' }}>
               {serverUrl}
             </p>
-            <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowTopQrModal(false)}>
-              Done
+            <button className="btn-pro-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowTopQrModal(false)}>
+              Close
             </button>
           </div>
         </div>

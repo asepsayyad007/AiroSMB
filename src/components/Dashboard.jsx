@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HardDrive, Wifi, QrCode, Tv, Folder, Copy, Check, Server, Shield, ArrowRight, Settings } from 'lucide-react';
+import { HardDrive, Wifi, QrCode, Tv, Folder, Copy, Check, Server, Shield, Settings, Play, Radio } from 'lucide-react';
 
 export default function Dashboard({ networkInfo, onNavigate, onRefreshNetwork }) {
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -30,159 +30,173 @@ export default function Dashboard({ networkInfo, onNavigate, onRefreshNetwork })
 
   const handleUpdateRoot = async (e) => {
     e.preventDefault();
+    if (!customPath.trim()) return;
     try {
       setSavingPath(true);
       setPathMessage('');
       const res = await fetch('/api/network/set-root', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPath: customPath })
+        body: JSON.stringify({ newPath: customPath.trim() })
       });
       const data = await res.json();
       if (res.ok) {
-        setPathMessage('✅ Shared root path updated!');
-        onRefreshNetwork();
+        setPathMessage('✅ Shared root path updated successfully!');
+        if (onRefreshNetwork) onRefreshNetwork();
       } else {
         setPathMessage(`❌ ${data.error}`);
       }
     } catch (err) {
-      setPathMessage('❌ Error setting root directory');
+      setPathMessage('❌ Error updating shared directory path');
     } finally {
       setSavingPath(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       
-      {/* Welcome Hero Banner */}
-      <div className="glass-card" style={{ background: 'linear-gradient(135deg, rgba(16, 24, 40, 0.85), rgba(79, 172, 254, 0.1))', border: '1px solid var(--border-glow)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
+      {/* Professional Server Status Header */}
+      <div className="pro-card" style={{ padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <span className="badge">
-                <Wifi size={14} /> LAN Online
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+              <span className="status-pill status-active">
+                <span className="status-dot"></span> Server Active
               </span>
-              <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-emerald)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
-                <Shield size={14} /> No Auth (Home LAN)
+              <span className="status-pill">
+                <Wifi size={13} /> {primaryIp}
               </span>
             </div>
-
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '8px' }}>
-              Welcome to <span style={{ background: 'linear-gradient(90deg, var(--accent-cyan), var(--accent-blue))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AiroSMB Home Server</span>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', margin: '4px 0' }}>
+              AiroSMB Home Server
             </h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-              Your high-speed local file hub & VLC media streaming engine for PC, TV, and Mobile.
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Local Network File Sharing & DLNA / UPnP Media Engine
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="btn-primary" onClick={() => onNavigate('explorer')}>
-              <Folder size={18} />
-              Browse PC Files
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-pro-primary" onClick={() => onNavigate('explorer')}>
+              <Folder size={16} /> Open Files
             </button>
-            <button className="btn-secondary" onClick={() => onNavigate('vlc')}>
-              <Tv size={18} />
-              VLC & TV Hub
+            <button className="btn-pro-secondary" onClick={() => onNavigate('vlc')}>
+              <Tv size={16} /> Stream Hub
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Stats Cards Grid */}
+      {/* 3 Main Connection & Storage Cards */}
       <div className="grid-3">
         
-        {/* Storage Stats */}
-        <div className="glass-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>PC Storage Status</span>
-            <HardDrive size={20} color="var(--accent-cyan)" />
+        {/* Storage Card */}
+        <div className="pro-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              PC Shared Disk Space
+            </span>
+            <HardDrive size={18} color="var(--accent-blue)" />
           </div>
-
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
-            {storage.total > 0 ? `${formatGb(storage.free)} GB Free` : 'PC Shared Drive'}
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
+            {storage.total > 0 ? `${formatGb(storage.free)} GB Free` : 'Shared Drive'}
           </div>
-
-          {storage.total > 0 && (
+          {storage.total > 0 ? (
             <>
-              <div className="storage-progress-bg">
-                <div className="storage-progress-fill" style={{ width: `${storage.percentUsed}%` }}></div>
+              <div className="progress-bar-bg">
+                <div className="progress-bar-fill" style={{ width: `${storage.percentUsed}%` }}></div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 <span>{storage.percentUsed}% Used ({formatGb(storage.used)} GB)</span>
                 <span>Total: {formatGb(storage.total)} GB</span>
               </div>
             </>
+          ) : (
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Storage information available</p>
           )}
         </div>
 
-        {/* Local LAN IP Card */}
-        <div className="glass-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Local Web Server URL</span>
-            <Wifi size={20} color="var(--accent-blue)" />
+        {/* Web URL Card */}
+        <div className="pro-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Web Dashboard Access
+            </span>
+            <Wifi size={18} color="var(--accent-cyan)" />
           </div>
-
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-cyan)', marginBottom: '12px', wordBreak: 'break-all' }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '1.05rem', fontWeight: 600, color: 'var(--accent-cyan)', marginBottom: '16px', wordBreak: 'break-all' }}>
             {serverUrl}
           </div>
-
-          <button onClick={copyUrl} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-            {copiedUrl ? <Check size={16} color="var(--accent-emerald)" /> : <Copy size={16} />}
-            {copiedUrl ? 'URL Copied!' : 'Copy Local Web URL'}
+          <button onClick={copyUrl} className="btn-pro-secondary" style={{ width: '100%', justifyContent: 'center' }}>
+            {copiedUrl ? <Check size={15} color="var(--accent-emerald)" /> : <Copy size={15} />}
+            {copiedUrl ? 'Copied to Clipboard' : 'Copy Web Address'}
           </button>
         </div>
 
-        {/* Windows SMB Share Card */}
-        <div className="glass-card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Windows SMB Network Path</span>
-            <Server size={20} color="var(--accent-purple)" />
+        {/* SMB Share Card */}
+        <div className="pro-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Windows SMB Share Path
+            </span>
+            <Server size={18} color="var(--accent-purple)" />
           </div>
-
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '1.15rem', fontWeight: 700, color: 'var(--accent-purple)', marginBottom: '12px', wordBreak: 'break-all' }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '16px', wordBreak: 'break-all' }}>
             {smbPath}
           </div>
-
-          <button onClick={copySmb} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-            {copiedSmb ? <Check size={16} color="var(--accent-emerald)" /> : <Copy size={16} />}
-            {copiedSmb ? 'SMB Path Copied!' : 'Copy Windows SMB Link'}
+          <button onClick={copySmb} className="btn-pro-secondary" style={{ width: '100%', justifyContent: 'center' }}>
+            {copiedSmb ? <Check size={15} color="var(--accent-emerald)" /> : <Copy size={15} />}
+            {copiedSmb ? 'Copied SMB Path' : 'Copy Windows SMB Link'}
           </button>
         </div>
 
       </div>
 
-      {/* QR Code Quick Pairing & Root Directory Settings */}
+      {/* Services Status & Configuration Grid */}
       <div className="grid-2">
         
-        {/* Mobile Pairing Card */}
-        <div className="glass-card" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-          {networkInfo?.qrDataUrl && (
-            <div style={{ background: '#fff', padding: '12px', borderRadius: 'var(--radius-md)', flexShrink: 0 }}>
-              <img src={networkInfo.qrDataUrl} alt="Quick Pairing QR" style={{ width: '130px', height: '130px', display: 'block' }} />
+        {/* Active Engine Summary */}
+        <div className="pro-card">
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '14px', color: 'var(--text-main)' }}>
+            Active Network Engines
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            
+            <div className="service-row">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Radio size={16} color="var(--accent-cyan)" />
+                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>DLNA / UPnP Media Server</span>
+              </div>
+              <span className="status-pill status-active" style={{ fontSize: '0.75rem' }}>Broadcasting (1900)</span>
             </div>
-          )}
 
-          <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '6px' }}>Scan to Open on Mobile / Tablet</h3>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              Point your iPhone, Android, or iPad camera at this QR code to access your PC files instantly on local Wi-Fi.
-            </p>
-            <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.82rem' }} onClick={copyUrl}>
-              <QrCode size={16} /> Copy Direct Mobile Link
-            </button>
+            <div className="service-row">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Server size={16} color="var(--accent-purple)" />
+                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Windows SMB Share</span>
+              </div>
+              <span className="status-pill status-active" style={{ fontSize: '0.75rem' }}>Port 4450</span>
+            </div>
+
+            <div className="service-row">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Wifi size={16} color="var(--accent-blue)" />
+                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Web Stream Engine</span>
+              </div>
+              <span className="status-pill status-active" style={{ fontSize: '0.75rem' }}>Port {port}</span>
+            </div>
+
           </div>
         </div>
 
-        {/* Change Shared Root Folder Card */}
-        <div className="glass-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <Settings size={20} color="var(--accent-cyan)" />
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Host PC Root Shared Path</h3>
+        {/* Change Shared Path Form */}
+        <div className="pro-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <Settings size={18} color="var(--accent-cyan)" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>Shared Folder Settings</h3>
           </div>
-
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-            Currently sharing: <code style={{ color: 'var(--accent-cyan)' }}>{networkInfo?.rootDirectory}</code>
+            Current directory: <code style={{ color: 'var(--accent-cyan)', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px' }}>{networkInfo?.rootDirectory}</code>
           </p>
 
           <form onSubmit={handleUpdateRoot} style={{ display: 'flex', gap: '10px' }}>
@@ -190,11 +204,11 @@ export default function Dashboard({ networkInfo, onNavigate, onRefreshNetwork })
               type="text" 
               value={customPath}
               onChange={(e) => setCustomPath(e.target.value)}
-              placeholder="e.g. C:\Users\aseps\Downloads or D:\Movies"
-              style={{ flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '10px 14px', color: 'var(--text-main)', fontSize: '0.85rem' }}
+              placeholder="e.g. C:\Users\aseps\Downloads\Video"
+              className="pro-input"
             />
-            <button type="submit" className="btn-primary" style={{ padding: '10px 16px' }} disabled={savingPath}>
-              {savingPath ? 'Saving...' : 'Update Path'}
+            <button type="submit" className="btn-pro-primary" style={{ padding: '8px 14px', fontSize: '0.85rem' }} disabled={savingPath}>
+              {savingPath ? 'Saving...' : 'Update'}
             </button>
           </form>
 
@@ -204,6 +218,24 @@ export default function Dashboard({ networkInfo, onNavigate, onRefreshNetwork })
         </div>
 
       </div>
+
+      {/* Mobile Pairing Card */}
+      {networkInfo?.qrDataUrl && (
+        <div className="pro-card" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', flexShrink: 0 }}>
+            <img src={networkInfo.qrDataUrl} alt="Pairing QR" style={{ width: '110px', height: '110px', display: 'block' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '4px' }}>Quick Mobile / TV Connection</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              Scan this QR code using your smartphone camera to connect to your PC files on Wi-Fi without entering URLs manually.
+            </p>
+            <button className="btn-pro-secondary" style={{ padding: '5px 12px', fontSize: '0.8rem' }} onClick={copyUrl}>
+              <QrCode size={14} /> Copy Mobile Link
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
