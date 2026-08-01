@@ -92,6 +92,8 @@ app.get('/api/files/stream', (req, res) => {
     const range = req.headers.range;
     const contentType = mime.lookup(filePath) || 'video/mp4';
 
+    console.log(`[DLNA Stream] ${req.ip} -> Playing "${path.basename(filePath)}" (${range ? 'Range: ' + range : 'Full Play'})`);
+
     // Optimize TCP socket for zero latency & high throughput
     if (req.socket) {
       req.socket.setNoDelay(true);

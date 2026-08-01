@@ -59,9 +59,14 @@ router.get('/scpd/avTransport.xml', (req, res) => {
 
 // SOAP Action Handlers
 router.post('/control/contentDirectory', async (req, res) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const serverIp = ssdpServer.primaryIp && ssdpServer.primaryIp !== '127.0.0.1'
+    ? ssdpServer.primaryIp
+    : req.get('host');
+  const baseUrl = `http://${serverIp}:${ssdpServer.port || 3000}`;
   const xmlBody = typeof req.body === 'string' ? req.body : '';
   const parsedArgs = parseSoapRequest(xmlBody);
+  
+  console.log(`[DLNA Request] ${req.ip} -> SOAP ${parsedArgs.actionName || 'Action'} (ObjectID="${parsedArgs.objectId}", Flag="${parsedArgs.browseFlag}")`);
   clientLogger.logRequest(req, `SOAP ContentDirectory:${parsedArgs.actionName || 'Action'}`);
 
   const responseSoap = await contentDirectoryService.handleAction(parsedArgs.actionName, parsedArgs, baseUrl);
@@ -70,20 +75,28 @@ router.post('/control/contentDirectory', async (req, res) => {
 });
 
 router.post('/control/connectionManager', async (req, res) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const serverIp = ssdpServer.primaryIp && ssdpServer.primaryIp !== '127.0.0.1'
+    ? ssdpServer.primaryIp
+    : req.get('host');
+  const baseUrl = `http://${serverIp}:${ssdpServer.port || 3000}`;
   const xmlBody = typeof req.body === 'string' ? req.body : '';
   const parsedArgs = parseSoapRequest(xmlBody);
 
+  console.log(`[DLNA Request] ${req.ip} -> SOAP ConnectionManager:${parsedArgs.actionName || 'Action'}`);
   const responseSoap = await connectionManagerService.handleAction(parsedArgs.actionName, parsedArgs, baseUrl);
   res.setHeader('Content-Type', 'text/xml; charset="utf-8"');
   res.send(responseSoap);
 });
 
 router.post('/control/avTransport', async (req, res) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const serverIp = ssdpServer.primaryIp && ssdpServer.primaryIp !== '127.0.0.1'
+    ? ssdpServer.primaryIp
+    : req.get('host');
+  const baseUrl = `http://${serverIp}:${ssdpServer.port || 3000}`;
   const xmlBody = typeof req.body === 'string' ? req.body : '';
   const parsedArgs = parseSoapRequest(xmlBody);
 
+  console.log(`[DLNA Request] ${req.ip} -> SOAP AVTransport:${parsedArgs.actionName || 'Action'}`);
   const responseSoap = await avTransportService.handleAction(parsedArgs.actionName, parsedArgs, baseUrl);
   res.setHeader('Content-Type', 'text/xml; charset="utf-8"');
   res.send(responseSoap);
