@@ -2,8 +2,8 @@
  * DIDL-Lite XML Generator for UPnP ContentDirectory
  */
 
-function escapeXml(str = '') {
-  return str
+function escapeXmlAttr(str = '') {
+  return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -17,18 +17,18 @@ export function generateDidlXml(itemsOrContainers, baseUrl) {
   for (const obj of itemsOrContainers) {
     if (obj.childrenIds !== undefined) {
       // Container
-      xml += `  <container id="${escapeXml(obj.id)}" parentID="${escapeXml(obj.parentId)}" restricted="1" childCount="${obj.childCount}">\n`;
-      xml += `    <dc:title>${escapeXml(obj.title)}</dc:title>\n`;
+      xml += `  <container id="${escapeXmlAttr(obj.id)}" parentID="${escapeXmlAttr(obj.parentId)}" restricted="1" childCount="${obj.childCount}">\n`;
+      xml += `    <dc:title>${escapeXmlAttr(obj.title)}</dc:title>\n`;
       xml += `    <upnp:class>${obj.upnpClass}</upnp:class>\n`;
       xml += `  </container>\n`;
     } else {
       // Item
       const streamUrl = `${baseUrl}/api/files/stream?path=${encodeURIComponent(obj.fullPath)}`;
 
-      xml += `  <item id="${escapeXml(obj.id)}" parentID="${escapeXml(obj.parentId)}" restricted="1">\n`;
-      xml += `    <dc:title>${escapeXml(obj.title)}</dc:title>\n`;
+      xml += `  <item id="${escapeXmlAttr(obj.id)}" parentID="${escapeXmlAttr(obj.parentId)}" restricted="1">\n`;
+      xml += `    <dc:title>${escapeXmlAttr(obj.title)}</dc:title>\n`;
       xml += `    <upnp:class>${obj.upnpClass}</upnp:class>\n`;
-      xml += `    <res protocolInfo="${escapeXml(obj.protocolInfo)}" size="${obj.sizeBytes}">${escapeXml(streamUrl)}</res>\n`;
+      xml += `    <res protocolInfo="${escapeXmlAttr(obj.protocolInfo)}" size="${obj.sizeBytes}">${escapeXmlAttr(streamUrl)}</res>\n`;
       xml += `  </item>\n`;
     }
   }

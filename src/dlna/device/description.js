@@ -38,21 +38,21 @@ export function getDeviceDescriptionXml(baseUrl) {
         <width>64</width>
         <height>64</height>
         <depth>24</depth>
-        <url>${escapeXml(baseUrl)}/icon-64.png</url>
+        <url>/icon-64.png</url>
       </icon>
       <icon>
         <mimetype>image/png</mimetype>
         <width>128</width>
         <height>128</height>
         <depth>24</depth>
-        <url>${escapeXml(baseUrl)}/icon-128.png</url>
+        <url>/icon-128.png</url>
       </icon>
       <icon>
         <mimetype>image/png</mimetype>
         <width>256</width>
         <height>256</height>
         <depth>24</depth>
-        <url>${escapeXml(baseUrl)}/icon-256.png</url>
+        <url>/icon-256.png</url>
       </icon>
     </iconList>
 
@@ -60,25 +60,25 @@ export function getDeviceDescriptionXml(baseUrl) {
       <service>
         <serviceType>urn:schemas-upnp-org:service:ContentDirectory:1</serviceType>
         <serviceId>urn:upnp-org:serviceId:ContentDirectory</serviceId>
-        <SCPDURL>${escapeXml(baseUrl)}/dlna/scpd/contentDirectory.xml</SCPDURL>
-        <controlURL>${escapeXml(baseUrl)}/dlna/control/contentDirectory</controlURL>
-        <eventSubURL>${escapeXml(baseUrl)}/dlna/event/contentDirectory</eventSubURL>
+        <SCPDURL>/dlna/scpd/contentDirectory.xml</SCPDURL>
+        <controlURL>/dlna/control/contentDirectory</controlURL>
+        <eventSubURL>/dlna/event/contentDirectory</eventSubURL>
       </service>
 
       <service>
         <serviceType>urn:schemas-upnp-org:service:ConnectionManager:1</serviceType>
         <serviceId>urn:upnp-org:serviceId:ConnectionManager</serviceId>
-        <SCPDURL>${escapeXml(baseUrl)}/dlna/scpd/connectionManager.xml</SCPDURL>
-        <controlURL>${escapeXml(baseUrl)}/dlna/control/connectionManager</controlURL>
-        <eventSubURL>${escapeXml(baseUrl)}/dlna/event/connectionManager</eventSubURL>
+        <SCPDURL>/dlna/scpd/connectionManager.xml</SCPDURL>
+        <controlURL>/dlna/control/connectionManager</controlURL>
+        <eventSubURL>/dlna/event/connectionManager</eventSubURL>
       </service>
 
       <service>
         <serviceType>urn:schemas-upnp-org:service:AVTransport:1</serviceType>
         <serviceId>urn:upnp-org:serviceId:AVTransport</serviceId>
-        <SCPDURL>${escapeXml(baseUrl)}/dlna/scpd/avTransport.xml</SCPDURL>
-        <controlURL>${escapeXml(baseUrl)}/dlna/control/avTransport</controlURL>
-        <eventSubURL>${escapeXml(baseUrl)}/dlna/event/avTransport</eventSubURL>
+        <SCPDURL>/dlna/scpd/avTransport.xml</SCPDURL>
+        <controlURL>/dlna/control/avTransport</controlURL>
+        <eventSubURL>/dlna/event/avTransport</eventSubURL>
       </service>
     </serviceList>
 

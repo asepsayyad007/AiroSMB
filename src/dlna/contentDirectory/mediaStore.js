@@ -221,11 +221,14 @@ class MediaStore {
 
             // Categorize into Movies/Videos/TV Shows
             if (isVideo) {
-              this.containers.get('0/videos').childrenIds.push(itemId);
+              if (!this.containers.get('0/videos').childrenIds.includes(itemId)) {
+                this.containers.get('0/videos').childrenIds.push(itemId);
+              }
+              if (!this.containers.get('0/movies').childrenIds.includes(itemId)) {
+                this.containers.get('0/movies').childrenIds.push(itemId);
+              }
               if (/s\d{1,2}e\d{1,2}/i.test(entry.name) || /season/i.test(entry.name)) {
                 this.containers.get('0/tvshows').childrenIds.push(itemId);
-              } else {
-                this.containers.get('0/movies').childrenIds.push(itemId);
               }
             } else if (isAudio) {
               this.containers.get('0/music').childrenIds.push(itemId);
@@ -265,20 +268,27 @@ class MediaStore {
   }
 
   /**
-   * Get item or container by ID with automatic UPnP alias resolution
+   * Get item or container by ID
    */
   getObject(rawId) {
-    const id = this.resolveContainerId(rawId);
-    if (this.containers.has(id)) {
-      return { isContainer: true, data: this.containers.get(id) };
+    if (!rawId) return { isContainer: true, data: this.containers.get('0') };
+
+    // 1. Direct item lookup
+    if (this.items.has(rawId)) {
+      return { isContainer: false, data: this.items.get(rawId) };
     }
-    if (this.items.has(id)) {
-      return { isContainer: false, data: this.items.get(id) };
+
+    // 2. Direct container lookup
+    if (this.containers.has(rawId)) {
+      return { isContainer: true, data: this.containers.get(rawId) };
     }
-    // Fallback: If unknown ID, return Master "0/all" container
-    if (this.containers.has('0/all')) {
-      return { isContainer: true, data: this.containers.get('0/all') };
+
+    // 3. Resolve container ID aliases
+    const resolvedId = this.resolveContainerId(rawId);
+    if (this.containers.has(resolvedId)) {
+      return { isContainer: true, data: this.containers.get(resolvedId) };
     }
+
     return null;
   }
 
