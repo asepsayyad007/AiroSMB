@@ -1,7 +1,17 @@
 import os from 'os';
 import dlnaConfig from '../../../config/dlna.js';
 
+function escapeXml(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 export function getDeviceDescriptionXml(baseUrl) {
+  const friendlyName = `${dlnaConfig.friendlyName} (${os.hostname()})`;
   return `<?xml version="1.0" encoding="utf-8"?>
 <root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:dlna="urn:schemas-dlna-org:device-1-0">
   <specVersion>
@@ -10,16 +20,16 @@ export function getDeviceDescriptionXml(baseUrl) {
   </specVersion>
   <device>
     <deviceType>urn:schemas-upnp-org:device:MediaServer:1</deviceType>
-    <friendlyName>${dlnaConfig.friendlyName} (${os.hostname()})</friendlyName>
-    <manufacturer>${dlnaConfig.manufacturer}</manufacturer>
-    <manufacturerURL>${baseUrl}</manufacturerURL>
-    <modelDescription>${dlnaConfig.modelDescription}</modelDescription>
-    <modelName>${dlnaConfig.modelName}</modelName>
-    <modelNumber>${dlnaConfig.modelNumber}</modelNumber>
-    <modelURL>${baseUrl}</modelURL>
-    <serialNumber>${dlnaConfig.serialNumber}</serialNumber>
-    <UDN>${dlnaConfig.uuid}</UDN>
-    <presentationURL>${baseUrl}/</presentationURL>
+    <friendlyName>${escapeXml(friendlyName)}</friendlyName>
+    <manufacturer>${escapeXml(dlnaConfig.manufacturer)}</manufacturer>
+    <manufacturerURL>${escapeXml(baseUrl)}</manufacturerURL>
+    <modelDescription>${escapeXml(dlnaConfig.modelDescription)}</modelDescription>
+    <modelName>${escapeXml(dlnaConfig.modelName)}</modelName>
+    <modelNumber>${escapeXml(dlnaConfig.modelNumber)}</modelNumber>
+    <modelURL>${escapeXml(baseUrl)}</modelURL>
+    <serialNumber>${escapeXml(dlnaConfig.serialNumber)}</serialNumber>
+    <UDN>${escapeXml(dlnaConfig.uuid)}</UDN>
+    <presentationURL>${escapeXml(baseUrl)}/</presentationURL>
 
     <iconList>
       <icon>
