@@ -173,6 +173,34 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
     setShowShareModal(true);
   };
 
+  // Robust Clipboard Copy Helper (Handles both HTTPS & HTTP local IP)
+  const copyToClipboard = (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(() => {
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  };
+
+  const fallbackCopy = (text) => {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+    }
+  };
+
   // Upload handler
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -618,18 +646,30 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               ))}
             </div>
 
+            {/* Clickable Mobile Link Display */}
+            <div style={{ marginBottom: '14px' }}>
+              <input 
+                type="text" 
+                readOnly 
+                value={shareWebUrl}
+                onClick={(e) => e.target.select()}
+                className="pro-input"
+                style={{ width: '100%', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', textAlign: 'center', color: 'var(--accent-orange)' }}
+              />
+            </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
                 className="btn-pro-secondary" 
                 style={{ flex: 1, justifyContent: 'center' }} 
                 onClick={() => {
-                  navigator.clipboard.writeText(shareWebUrl);
+                  copyToClipboard(shareWebUrl);
                   setCopiedLink(true);
                   setTimeout(() => setCopiedLink(false), 2000);
                 }}
               >
-                {copiedLink ? <Check size={13} /> : <Copy size={13} />}
-                {copiedLink ? 'Copied Link' : 'Copy Mobile Link'}
+                {copiedLink ? <Check size={13} color="var(--accent-emerald)" /> : <Copy size={13} />}
+                {copiedLink ? 'Copied to Clipboard!' : 'Copy Mobile Link'}
               </button>
 
               <button className="btn-pro-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setShowShareModal(false)}>
