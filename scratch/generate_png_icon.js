@@ -58,7 +58,33 @@ function crc32(buf) {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-// Generate 256x256 AiroShare Sunset Icon PNG
+function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const l2 = dx * dx + dy * dy;
+  if (l2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+function getGradientColor(ny) {
+  if (ny <= 0.3) {
+    const t = ny / 0.3;
+    return [255, Math.round(93 - t * 17), Math.round(11 + t * 26)];
+  } else if (ny <= 0.65) {
+    const t = (ny - 0.3) / 0.35;
+    return [Math.round(255 - t * 31), Math.round(76 - t * 34), Math.round(37 - t * 1)];
+  } else if (ny <= 0.9) {
+    const t = (ny - 0.65) / 0.25;
+    return [Math.round(224 - t * 66), Math.round(42 - t * 24), Math.round(36 - t * 5)];
+  } else {
+    const t = (ny - 0.9) / 0.1;
+    return [Math.round(158 - t * 34), Math.round(18 - t * 10), Math.round(31 - t * 12)];
+  }
+}
+
+// Generate 256x256 AiroShare Sunset Icon PNG (Thickened Elements)
 const pngBuffer = createPng(256, 256, (x, y, w, h) => {
   const nx = x / w;
   const ny = y / h;
@@ -72,34 +98,47 @@ const pngBuffer = createPng(256, 256, (x, y, w, h) => {
     return [0, 0, 0, 0]; // Transparent padding
   }
 
-  // Sunset Gradient (#FF5D0B at top -> #E02A24 at bottom)
-  let r = Math.round(255 - ny * 30);
-  let g = Math.round(93 - ny * 50);
-  let b = Math.round(11 - ny * 5);
+  // Pure Sunset 5-stop Gradient
+  const [gr, gg, gb] = getGradientColor(ny);
+  let r = gr;
+  let g = gg;
+  let b = gb;
   let a = 255;
 
-  // Draw PC Monitor Frame inside (center box)
-  const isMonitorFrame = (nx >= 0.25 && nx <= 0.75 && ny >= 0.28 && ny <= 0.56);
-  const isMonitorBezel = isMonitorFrame && (nx < 0.28 || nx > 0.72 || ny < 0.31 || ny > 0.53);
-  const isStand = (nx >= 0.48 && nx <= 0.52 && ny >= 0.56 && ny <= 0.65) || (nx >= 0.41 && nx <= 0.59 && ny >= 0.63 && ny <= 0.66);
+  // Draw PC Monitor Frame inside (center box matching Airoshare-thick.svg)
+  // Bezel Box coordinates: x=250 to 750, y=270 to 550
+  const isMonitorFrame = (nx >= 0.25 && nx <= 0.75 && ny >= 0.27 && ny <= 0.55);
+  // Bezel thickness is 40 units out of 1000 (relative 0.04)
+  const isMonitorBezel = isMonitorFrame && (nx < 0.29 || nx > 0.71 || ny < 0.31 || ny > 0.51);
+  // PC Stand Neck: x=470 to 530, y=540 to 610
+  const isStandNeck = (nx >= 0.47 && nx <= 0.53 && ny >= 0.54 && ny <= 0.61);
+  // PC Stand Base Line: x=390 to 610, y=610, thickness=32 (relative 0.016 radius)
+  const isStandBase = (nx >= 0.39 && nx <= 0.61 && Math.abs(ny - 0.61) < 0.016);
 
-  if (isMonitorBezel || isStand) {
-    return [255, 255, 255, 255]; // White monitor border & stand
+  if (isMonitorBezel || isStandNeck || isStandBase) {
+    return [255, 255, 255, 255]; // White monitor border & stand elements
   }
   
   if (isMonitorFrame) {
-    // Screen gradient
-    r = Math.round(200 - ny * 100);
-    g = Math.round(40 - ny * 20);
-    b = Math.round(20 - ny * 10);
+    // Screen interior fill: blend monitorScreenGrad
+    r = Math.round(255 - ny * 120);
+    g = Math.round(75 - ny * 50);
+    b = Math.round(43 - ny * 20);
   }
 
-  // Draw Share Nodes (White dots & lines)
-  const node1 = (Math.hypot(nx - 0.43, ny - 0.42) < 0.05);
-  const node2 = (Math.hypot(nx - 0.57, ny - 0.35) < 0.05);
-  const node3 = (Math.hypot(nx - 0.57, ny - 0.49) < 0.05);
-  
-  if (node1 || node2 || node3) {
+  // Draw Share Network Nodes & Connection Tracks (Thickened)
+  // Node 1: cx=430, cy=410, r=26 (relative 0.026)
+  const isNode1 = (Math.hypot(nx - 0.43, ny - 0.41) < 0.026);
+  // Node 2: cx=560, cy=345, r=26
+  const isNode2 = (Math.hypot(nx - 0.56, ny - 0.345) < 0.026);
+  // Node 3: cx=560, cy=475, r=26
+  const isNode3 = (Math.hypot(nx - 0.56, ny - 0.475) < 0.026);
+
+  // Connection Tracks (Stroke width 26, i.e., relative 0.013 radius)
+  const isTrack1 = distToSegment(nx, ny, 0.43, 0.41, 0.56, 0.345) < 0.013;
+  const isTrack2 = distToSegment(nx, ny, 0.43, 0.41, 0.56, 0.475) < 0.013;
+
+  if (isNode1 || isNode2 || isNode3 || isTrack1 || isTrack2) {
     return [255, 255, 255, 255];
   }
 
@@ -107,5 +146,4 @@ const pngBuffer = createPng(256, 256, (x, y, w, h) => {
 });
 
 fs.writeFileSync('c:/Users/aseps/Downloads/Projects/AiroSMB/public/AiroShare.png', pngBuffer);
-console.log('Base64 PNG length:', pngBuffer.toString('base64').length);
-console.log('Base64 PNG:', pngBuffer.toString('base64'));
+console.log('High-res 256x256 icon generated at public/AiroShare.png');
