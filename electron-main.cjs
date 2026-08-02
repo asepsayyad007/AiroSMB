@@ -108,6 +108,9 @@ function createWindow() {
   // Remove the default File / Edit / View / Window / Help menu bar
   mainWindow.removeMenu();
 
+  // Load loading screen immediately to show visual progress while server boots
+  mainWindow.loadFile(path.join(__dirname, 'public', 'loading.html'));
+
   const isDev = !app.isPackaged;
 
   if (isDev) {
