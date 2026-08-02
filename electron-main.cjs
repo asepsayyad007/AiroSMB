@@ -164,6 +164,11 @@ function createWindow() {
 
 // 4. App Lifecycle Events
 app.whenReady().then(() => {
+  // Set Application User Model ID for correct taskbar grouping and Windows notification titles
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.airoshare.app');
+  }
+  
   startServer();
   
   // Wait a moment for server socket to bind before loading window
