@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-08-02
+
+### Added
+- **Dynamic Port Allocation**: Changed default HTTP port from `3000` to `9900` and FTP port from `2121` to a dynamically verified free port on startup to prevent collisions.
+- **Port Syncing for Dev Server**: Dynamically writes the selected runtime port to `config/port.json` so the Vite proxy configuration matches the active port automatically.
+- **Headless PNG Icon Rasterizer**: Added a helper script to capture `public/AiroShare.png` directly from `AiroShare.svg` using a headless Electron instance, preserving alpha transparency and the custom "AiroShare" text.
+
+### Changed
+- **Minimalist Status Footer**: Redesigned the sidebar status card into a transparent, sleek divider card with a custom green pulsing dot animation.
+
+### Fixed
+- **DLNA Branding Text**: Resolved missing "AiroShare" text on the DLNA client icon (VLC/Smart TVs) by embedding the new transparent, text-complete 256x256 PNG.
+- **SVG XML Syntax Errors**: Fixed invalid JSX-style comments in `AiroShare.svg` vector assets to conform to valid XML/SVG specifications.
+
 ## [1.3.1] - 2026-08-02
 
 ### Fixed

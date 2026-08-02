@@ -6,7 +6,7 @@
 ### High-Performance Local Media Server & File Engine
 ##### Built by [Asep Sayyad](https://github.com/asepsayyad007)
 
-[![Version](https://img.shields.io/badge/Version-1.3.1-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
+[![Version](https://img.shields.io/badge/Version-1.3.2-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)](#technical-deep-dive)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge)](LICENSE)
 [![Stack](https://img.shields.io/badge/Stack-Node.js%20%7C%20React%20%7C%20Vite-brightgreen?style=for-the-badge&logo=node.js)](#)
@@ -75,8 +75,8 @@ npm run server
 ```
 
 The server will initialize and output local network credentials:
-* **Web Dashboard**: `http://localhost:3000` (or local LAN IP: `http://192.168.1.120:3000`)
-* **SSDP/DLNA Broadcast URL**: `http://192.168.1.120:3000/dlna/description.xml`
+* **Web Dashboard**: `http://localhost:9900` (or local LAN IP: `http://192.168.1.120:9900`)
+* **SSDP/DLNA Broadcast URL**: `http://192.168.1.120:9900/dlna/description.xml`
 * **FTP Stream Port**: `ftp://192.168.1.120:2121`
 
 ---
@@ -106,7 +106,7 @@ AiroShare/
 AiroShare is built to be a robust, high-performance, and lightweight local area network (LAN) sharing system.
 
 ### Dual-Stack Dynamic Bindings
-* **Dual-Stack Socket Binding**: AiroShare binds to Node's dual-stack IPv6/IPv4 listener (`:::3000`), allowing clients to connect using `http://localhost:3000`, computer network name (`http://aseppc:3000`), or direct LAN IP addresses.
+* **Dual-Stack Socket Binding**: AiroShare binds to Node's dual-stack IPv6/IPv4 listener (`:::9900`), allowing clients to connect using `http://localhost:9900`, computer network name (`http://aseppc:9900`), or direct LAN IP addresses.
 * **Auto Adapter Scanning**: The network engine uses `os.networkInterfaces()` to detect active physical adapters (Wi-Fi, Ethernet) while ignoring virtual interfaces (WSL, VirtualBox, loopbacks). The client immediately sees connected connection badges (e.g. `Wi-Fi (192.168.1.120)`) in real-time.
 * **Fully Dynamic Configuration**: The system hostname and IP addresses adapt dynamically on server start. If the software is installed on another machine (e.g., Ubuntu Linux, macOS, or another Windows PC), it resolves everything correctly without manual setup.
 
