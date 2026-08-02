@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import mime from 'mime-types';
 import dlnaConfig from '../../../config/dlna.js';
+import probeMediaFile from '../utils/mediaProber.js';
 
 /**
  * Robust UPnP / DLNA MediaStore
@@ -195,8 +196,24 @@ class MediaStore {
               mimeType,
               ext,
               upnpClass,
-              protocolInfo
+              protocolInfo,
+              // Media metadata (populated from binary header probe, null if not extractable)
+              duration: null,
+              bitrate: null,
+              sampleFrequency: null,
+              nrAudioChannels: null
             };
+
+            // Probe binary headers for media metadata (non-blocking, never throws)
+            try {
+              const meta = probeMediaFile(fullPath, ext);
+              if (meta.duration) itemObj.duration = meta.duration;
+              if (meta.bitrate) itemObj.bitrate = meta.bitrate;
+              if (meta.sampleFrequency) itemObj.sampleFrequency = meta.sampleFrequency;
+              if (meta.nrAudioChannels) itemObj.nrAudioChannels = meta.nrAudioChannels;
+            } catch {
+              // Ignore probe failures — metadata is optional
+            }
 
             this.items.set(itemId, itemObj);
 

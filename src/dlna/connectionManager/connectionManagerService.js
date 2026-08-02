@@ -6,11 +6,13 @@ const SERVICE_URN = 'urn:schemas-upnp-org:service:ConnectionManager:1';
 export class ConnectionManagerService {
   async handleAction(actionName, parsedArgs, baseUrl) {
     switch (actionName) {
-      case 'GetProtocolInfo':
+      case 'GetProtocolInfo': {
         const sinks = '';
-        const sources = Object.values(dlnaConfig.mimeProtocolInfoMap).map(p => `http-get:*:${p}`).join(',');
+        // Values are already full protocolInfo strings (e.g. "http-get:*:video/mp4:DLNA.ORG_OP=11;...")
+        const sources = Object.values(dlnaConfig.mimeProtocolInfoMap).join(',');
         const inner = `      <Source>${sources}</Source>\n      <Sink>${sinks}</Sink>`;
         return buildSoapResponse(SERVICE_URN, 'GetProtocolInfo', inner);
+      }
 
       case 'GetCurrentConnectionIDs':
         return buildSoapResponse(SERVICE_URN, 'GetCurrentConnectionIDs', '      <ConnectionIDs>0</ConnectionIDs>');

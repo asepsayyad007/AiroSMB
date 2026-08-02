@@ -3,8 +3,8 @@ import path from 'path';
 import mime from 'mime-types';
 import clientTracker from '../../utils/clientTracker.js';
 
-// High-performance streaming buffer: 1 MB chunks to saturate Gigabit LAN
-const STREAM_HIGH_WATER_MARK = 1024 * 1024;
+// High-performance streaming buffer: 2MB chunks to saturate Gigabit LAN
+const STREAM_HIGH_WATER_MARK = 2 * 1024 * 1024;
 
 /**
  * Production Media Stream Handler for HTTP 206 & 200 responses
@@ -40,7 +40,7 @@ export function handleMediaStream(req, res) {
     // Optimize TCP socket for zero latency & high throughput
     if (req.socket) {
       req.socket.setNoDelay(true);
-      req.socket.setKeepAlive(true, 15000);
+      req.socket.setKeepAlive(true, 60000); // 60s keep-alive for long 4K streams
     }
 
     const dlnaHeaders = {
@@ -49,8 +49,9 @@ export function handleMediaStream(req, res) {
       'Access-Control-Allow-Origin': '*',
       'Connection': 'keep-alive',
       'Keep-Alive': 'timeout=60, max=10000',
+      // OP=11: byte-range (01) + time-seek (10) both enabled — allows VLC/TV scrubbing
       'transferMode.dlna.org': 'Streaming',
-      'contentFeatures.dlna.org': 'DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
+      'contentFeatures.dlna.org': 'DLNA.ORG_OP=11;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000',
       'Cache-Control': 'public, max-age=31536000'
     };
 
