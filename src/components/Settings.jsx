@@ -4,7 +4,7 @@ import { Settings as SettingsIcon, HardDrive, Tv, Wifi, Check, Folder, ChevronRi
 export default function Settings({ networkInfo, onRefreshNetwork }) {
   const isElectron = !!(window.electronAPI && window.electronAPI.isElectron);
   const [isAutostart, setIsAutostart] = useState(false);
-  const [sharedPath, setSharedPath] = useState(networkInfo?.rootDirectory || 'C:\\Users\\aseps\\Videos');
+  const [sharedPath, setSharedPath] = useState(networkInfo?.rootDirectory || '');
   const [ftpPortInput, setFtpPortInput] = useState(2121);
   const [savingPath, setSavingPath] = useState(false);
   const [savingFtp, setSavingFtp] = useState(false);
@@ -175,7 +175,7 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
                 />
               )}
               <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '6px', display: 'block' }}>
-                System default: <code style={{ color: 'var(--accent-orange)' }}>C:\Users\aseps\Videos</code>
+                System default: <code style={{ color: 'var(--accent-orange)' }}>{networkInfo?.platform === 'win32' ? 'C:\\Users\\<User>\\Videos' : '~/Videos'}</code>
               </span>
             </div>
 

@@ -25,7 +25,7 @@ class MediaStore {
     this.containers.set('0', {
       id: '0',
       parentId: '-1',
-      title: 'AiroSMB Media Share',
+      title: 'AiroShare Media Share',
       upnpClass: 'object.container.storageFolder',
       childCount: 6,
       childrenIds: ['0/all', '0/movies', '0/videos', '0/tvshows', '0/music', '0/photos']

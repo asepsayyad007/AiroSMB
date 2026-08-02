@@ -145,5 +145,5 @@ const pngBuffer = createPng(256, 256, (x, y, w, h) => {
   return [r, g, b, a];
 });
 
-fs.writeFileSync('c:/Users/aseps/Downloads/Projects/AiroSMB/public/AiroShare.png', pngBuffer);
+fs.writeFileSync('public/AiroShare.png', pngBuffer);
 console.log('High-res 256x256 icon generated at public/AiroShare.png');

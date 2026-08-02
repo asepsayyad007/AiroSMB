@@ -405,7 +405,8 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               const subParts = relPath ? relPath.split(/[/\\]/).filter(Boolean) : [];
 
               return subParts.map((part, index) => {
-                const subPath = rootDir + '\\' + subParts.slice(0, index + 1).join('\\');
+                const sep = rootDir.includes('\\') ? '\\' : '/';
+                const subPath = rootDir + sep + subParts.slice(0, index + 1).join(sep);
                 return (
                   <React.Fragment key={index}>
                     <ChevronRight size={12} color="var(--text-muted)" />

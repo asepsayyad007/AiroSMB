@@ -11,7 +11,7 @@ const dlnaConfig = {
   manufacturerUrl: 'http://localhost:3000',
   modelName: 'AiroShare',
   modelDescription: 'High Performance PC Home Media & File Sharing Server',
-  modelNumber: '1.2.0',
+  modelNumber: '1.3.0',
   serialNumber: 'AIROSHARE-2026-001',
   uuid: 'uuid:airoshare-mediaserver-1000-8000-000000000001',
   
@@ -23,7 +23,7 @@ const dlnaConfig = {
   enableDlna: true,
   enableLogging: true,
 
-  mediaRoot: 'C:\\Users\\aseps\\Videos',
+  mediaRoot: path.join(os.homedir(), 'Videos'),
   
   // Supported MIME types map for UPnP protocolInfo
   mimeProtocolInfoMap: {

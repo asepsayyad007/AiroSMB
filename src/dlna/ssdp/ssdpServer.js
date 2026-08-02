@@ -161,7 +161,7 @@ class SsdpServer {
         `LOCATION: ${location}\r\n` +
         `NT: ${item.nt}\r\n` +
         `NTS: ${nts}\r\n` +
-        `SERVER: Windows/10 UPnP/1.0 AiroSMB/1.0\r\n` +
+        `SERVER: Windows/10 UPnP/1.0 AiroShare/1.0\r\n` +
         `USN: ${item.usn}\r\n` +
         `\r\n`;
 

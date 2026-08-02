@@ -1,10 +1,12 @@
 import FtpServer from 'ftp-srv';
+import path from 'path';
+import os from 'os';
 
 class AiroFtpServer {
   constructor(options = {}) {
     this.port = options.port || 2121;
     this.host = options.host || '0.0.0.0';
-    this.rootPath = options.rootPath || 'C:\\Users\\aseps\\Downloads';
+    this.rootPath = options.rootPath || path.join(os.homedir(), 'Downloads');
     this.ftpServer = null;
     this.isRunning = false;
   }

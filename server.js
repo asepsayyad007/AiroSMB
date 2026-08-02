@@ -30,9 +30,9 @@ const servicesState = {
   dlna: true
 };
 
-// Set up default initial directory (Default: C:\Users\aseps\Videos)
-const defaultVideosDir = os.platform() === 'win32' ? 'C:\\Users\\aseps\\Videos' : path.join(os.homedir(), 'Videos');
-let rootDirectory = fs.existsSync(defaultVideosDir) ? defaultVideosDir : (fs.existsSync(path.join(os.homedir(), 'Videos')) ? path.join(os.homedir(), 'Videos') : os.homedir());
+// Set up default initial directory (Default: User Videos folder)
+const defaultVideosDir = path.join(os.homedir(), 'Videos');
+let rootDirectory = fs.existsSync(defaultVideosDir) ? defaultVideosDir : os.homedir();
 
 if (!fs.existsSync(rootDirectory)) {
   try {
@@ -462,7 +462,7 @@ app.get('/api/network/shortcut-directories', (req, res) => {
   try {
     const home = os.homedir();
     const shortcuts = [
-      { name: 'Videos', path: os.platform() === 'win32' ? 'C:\\Users\\aseps\\Videos' : path.join(home, 'Videos') },
+      { name: 'Videos', path: path.join(home, 'Videos') },
       { name: 'Downloads', path: path.join(home, 'Downloads') },
       { name: 'Desktop', path: path.join(home, 'Desktop') },
       { name: 'Home Directory', path: home }

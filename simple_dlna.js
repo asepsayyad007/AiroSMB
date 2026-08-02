@@ -23,7 +23,7 @@ const mediaDir = args[0]
 const PREFERRED_PORT = parseInt(args[1], 10) || 3000;
 
 if (!fs.existsSync(mediaDir)) {
-  console.error(`[AiroSMB] Media directory does not exist: ${mediaDir}`);
+  console.error(`[AiroShare] Media directory does not exist: ${mediaDir}`);
   process.exit(1);
 }
 
@@ -82,7 +82,7 @@ app.get('/api/files/stream', handleMediaStream);
 // --- Start Server ---
 const PORT = await findFreePort(PREFERRED_PORT);
 if (PORT !== PREFERRED_PORT) {
-  console.warn(`[AiroSMB] Port ${PREFERRED_PORT} busy, using port ${PORT}.`);
+  console.warn(`[AiroShare] Port ${PREFERRED_PORT} busy, using port ${PORT}.`);
 }
 
 const primaryIp = getPrimaryIp();
@@ -108,10 +108,10 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
 
 // --- Graceful Process Shutdown ---
 function shutdown() {
-  console.log('\n[AiroSMB] Shutting down DLNA server...');
+  console.log('\n[AiroShare] Shutting down DLNA server...');
   ssdpServer.stop();
   server.close(() => {
-    console.log('[AiroSMB] HTTP Server closed cleanly.');
+    console.log('[AiroShare] HTTP Server closed cleanly.');
     process.exit(0);
   });
 }
