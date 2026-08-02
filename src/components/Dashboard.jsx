@@ -384,7 +384,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           
           {/* Breadcrumb Trail (Strictly Scoped to Shared Root) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+          <div className="breadcrumb-container">
             {parentPath && (
               <button onClick={() => fetchDirectory(parentPath)} className="btn-pro-secondary" style={{ padding: '3px 8px', fontSize: '0.78rem', marginRight: '6px' }}>
                 <ArrowLeft size={13} /> Back
@@ -399,13 +399,13 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
             </span>
             {(() => {
               const rootDir = networkInfo?.rootDirectory || '';
+              const sep = rootDir.includes('\\') ? '\\' : '/';
               const relPath = (currentPath && rootDir && currentPath.toLowerCase().startsWith(rootDir.toLowerCase()))
                 ? currentPath.substring(rootDir.length).replace(/^[/\\]+/, '')
                 : '';
               const subParts = relPath ? relPath.split(/[/\\]/).filter(Boolean) : [];
 
               return subParts.map((part, index) => {
-                const sep = rootDir.includes('\\') ? '\\' : '/';
                 const subPath = rootDir + sep + subParts.slice(0, index + 1).join(sep);
                 return (
                   <React.Fragment key={index}>
@@ -431,27 +431,23 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             
             {/* Search Box */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '5px 10px', width: '200px' }}>
+            <div className="search-container">
               <Search size={14} color="var(--text-muted)" />
               <input 
                 type="text" 
                 placeholder="Search files..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-main)', fontSize: '0.82rem', width: '100%' }}
+                className="search-input"
               />
             </div>
 
             {/* Category Pills */}
-            <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', padding: '3px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+            <div className="pills-container">
               {['all', 'video', 'audio', 'image', 'document'].map(cat => (
                 <button 
                   key={cat}
-                  style={{ 
-                    background: selectedCategory === cat ? 'rgba(255, 93, 11, 0.15)' : 'transparent',
-                    color: selectedCategory === cat ? 'var(--accent-orange)' : 'var(--text-muted)',
-                    border: 'none', padding: '4px 8px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500 
-                  }}
+                  className={`pill-btn ${selectedCategory === cat ? 'active' : ''}`}
                   onClick={() => setSelectedCategory(cat)}
                 >
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -505,7 +501,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '8px' }}>
                   Folders ({directories.length})
                 </span>
-                <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                <div className="list-container">
                   {directories.map((dir, idx) => (
                     <div 
                       key={idx} 
@@ -514,10 +510,8 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'space-between', 
-                        padding: '10px 14px', 
-                        borderBottom: idx < directories.length - 1 ? '1px solid var(--border-color)' : 'none',
-                        cursor: 'pointer',
-                        transition: 'var(--transition)'
+                        padding: '12px 16px', 
+                        cursor: 'pointer'
                       }}
                       className="list-row-hover"
                     >
@@ -555,7 +549,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                   No matching files in this directory.
                 </div>
               ) : (
-                <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                <div className="list-container">
                   {filteredFiles.map((file, idx) => {
                     const isSelected = selectedFilePaths.includes(file.path);
                     const absoluteStreamUrl = primaryIp ? `http://${primaryIp}:${port}${file.streamUrl}` : file.streamUrl;
@@ -568,8 +562,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'space-between', 
-                          padding: '10px 14px', 
-                          borderBottom: idx < filteredFiles.length - 1 ? '1px solid var(--border-color)' : 'none',
+                          padding: '12px 16px', 
                           gap: '12px',
                           background: isSelected ? 'rgba(255, 93, 11, 0.06)' : 'transparent'
                         }}
