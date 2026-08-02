@@ -69,6 +69,26 @@ function createTray() {
   });
 }
 
+// Helper to wait for a port to be listening before executing a callback
+function waitForPort(port, host, callback) {
+  const net = require('net');
+  const socket = new net.Socket();
+  socket.setTimeout(400);
+  
+  socket.connect(port, host, () => {
+    socket.destroy();
+    callback();
+  });
+  
+  const retry = () => {
+    socket.destroy();
+    setTimeout(() => waitForPort(port, host, callback), 500);
+  };
+  
+  socket.on('error', retry);
+  socket.on('timeout', retry);
+}
+
 // 3. Create Main Application Window
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -88,47 +108,36 @@ function createWindow() {
   // Remove the default File / Edit / View / Window / Help menu bar
   mainWindow.removeMenu();
 
-  // Determine starting URL (Vite dev server on 5173 or local Express on 3000)
-  let startUrl = 'http://localhost:3000';
   const isDev = !app.isPackaged;
 
-  // Add auto-retry did-fail-load listener to handle slow backend process boot gracefully
-  let connectionAttempts = 0;
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    if (validatedURL.startsWith('http://localhost:3000') || validatedURL.startsWith('http://localhost:5173')) {
-      connectionAttempts++;
-      if (connectionAttempts < 15) {
-        console.log(`[AiroShare Electron] Connection failed: ${errorDescription}. Retrying in 1s... (Attempt ${connectionAttempts})`);
-        setTimeout(() => {
-          if (mainWindow) {
-            mainWindow.loadURL(validatedURL);
-          }
-        }, 1000);
-      }
-    }
-  });
-
   if (isDev) {
+    // Check if Vite dev server is running on 5173
     const net = require('net');
     const socket = new net.Socket();
     socket.setTimeout(300);
     socket.connect(5173, '127.0.0.1', () => {
       socket.destroy();
-      startUrl = 'http://localhost:5173';
-      console.log(`[AiroShare Electron] Vite dev server detected. Loading: ${startUrl}`);
-      if (mainWindow) mainWindow.loadURL(startUrl);
+      console.log('[AiroShare Electron] Vite dev server detected. Loading dev dashboard: http://localhost:5173');
+      if (mainWindow) mainWindow.loadURL('http://localhost:5173');
     });
     
     const fallbackToExpress = () => {
       socket.destroy();
-      console.log(`[AiroShare Electron] Vite dev server not detected. Loading local Express server: ${startUrl}`);
-      if (mainWindow) mainWindow.loadURL(startUrl);
+      console.log('[AiroShare Electron] Vite dev server not detected. Waiting for Express server on port 3000 to boot...');
+      waitForPort(3000, '127.0.0.1', () => {
+        console.log('[AiroShare Electron] Express server started. Loading dashboard: http://localhost:3000');
+        if (mainWindow) mainWindow.loadURL('http://localhost:3000');
+      });
     };
 
     socket.on('error', fallbackToExpress);
     socket.on('timeout', fallbackToExpress);
   } else {
-    mainWindow.loadURL(startUrl);
+    console.log('[AiroShare Electron] Waiting for local Express server on port 3000 to boot...');
+    waitForPort(3000, '127.0.0.1', () => {
+      console.log('[AiroShare Electron] Express server started. Loading: http://localhost:3000');
+      if (mainWindow) mainWindow.loadURL('http://localhost:3000');
+    });
   }
 
   // Handle window close interception (Minimize to Tray)
