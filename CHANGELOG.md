@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-08-02
+
+### Fixed
+- **Silent Startup Port Polling**: Implemented a TCP port probing helper (`waitForPort`) to wait until the Express server is fully bound before loading the URL, eliminating native `ERR_CONNECTION_REFUSED` console warnings.
+- **Windows Notification Title branding**: Configured `app.setAppUserModelId` to register the application on Windows, correcting desktop notification title banners from default `electron.app.electron` to `AiroShare`.
+
 ## [1.3.0] - 2026-08-02
 
 ### Added

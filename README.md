@@ -5,7 +5,7 @@
 # AiroShare
 ### High-Performance Local Media Server & File Engine
 
-[![Version](https://img.shields.io/badge/Version-1.3.0-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
+[![Version](https://img.shields.io/badge/Version-1.3.1-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)](#technical-deep-dive)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge)](LICENSE)
 [![Stack](https://img.shields.io/badge/Stack-Node.js%20%7C%20React%20%7C%20Vite-brightgreen?style=for-the-badge&logo=node.js)](#)
