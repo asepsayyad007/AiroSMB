@@ -174,87 +174,93 @@ body {
 
 /* Sidebar Server Status Footer */
 .server-status-card {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-lg);
-  padding: 14px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 16px 4px 0 4px;
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.02);
+  gap: 6px;
+  box-shadow: none;
 }
 
-.status-header {
+.status-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.status-app-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.2px;
+}
+
+.status-version {
+  font-size: 0.7rem;
+  color: var(--accent-orange);
+  font-weight: 700;
+  background: rgba(255, 93, 11, 0.08);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 93, 11, 0.15);
+}
+
+.status-connection-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.68rem;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.status-ip-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.status-indicator-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.66rem;
   color: var(--accent-emerald);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
+  background: rgba(16, 185, 129, 0.06);
+  padding: 2px 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
 }
 
 .status-dot-pulse {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--accent-emerald);
-  box-shadow: 0 0 8px var(--accent-emerald);
+  box-shadow: 0 0 6px var(--accent-emerald);
   animation: status-pulse-glow 2s infinite ease-in-out;
 }
 
 @keyframes status-pulse-glow {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; box-shadow: 0 0 12px var(--accent-emerald); }
-  100% { opacity: 0.6; }
-}
-
-.status-ip-box {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.76rem;
-  color: var(--text-main);
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  padding: 6px 10px;
-  border-radius: var(--radius-md);
-  text-align: center;
-  letter-spacing: 0.2px;
-  font-weight: 500;
-}
-
-.status-app-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.74rem;
-  color: var(--text-muted);
-  font-weight: 600;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 8px;
-  margin-top: 2px;
-}
-
-.status-version-badge {
-  color: var(--accent-orange);
-  background: rgba(255, 93, 11, 0.08);
-  border: 1px solid rgba(255, 93, 11, 0.12);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.2px;
+  0% { opacity: 0.5; }
+  50% { opacity: 1; box-shadow: 0 0 8px var(--accent-emerald); }
+  100% { opacity: 0.5; }
 }
 
 .status-author-credit {
-  font-size: 0.64rem;
+  font-size: 0.62rem;
   color: var(--text-dim);
-  text-align: center;
-  margin-top: 2px;
+  margin-top: 4px;
   font-weight: 600;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
+  opacity: 0.85;
 }
 
 /* Main Content Area */

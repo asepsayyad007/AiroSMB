@@ -101,18 +101,18 @@ export default function App() {
 
         {/* Server Status Footer Card */}
         <div className="server-status-card">
-          <div className="status-header">
-            <span className="status-dot-pulse"></span>
-            <span>Server Active</span>
+          <div className="status-row-top">
+            <span className="status-app-name">AiroShare</span>
+            <span className="status-version">v{networkInfo?.version || '1.3.1'}</span>
           </div>
-          <div className="status-ip-box">
-            {primaryIp ? `${primaryIp}:${port}` : 'Loading LAN IP...'}
-          </div>
-          <div className="status-app-info">
-            <span>AiroShare</span>
-            <span className="status-version-badge">
-              v{networkInfo?.version || '1.3.1'}
+          <div className="status-connection-row">
+            <span className="status-ip-text">
+              {primaryIp ? `${primaryIp}:${port}` : 'Loading LAN IP...'}
             </span>
+            <div className="status-indicator-badge">
+              <span className="status-dot-pulse"></span>
+              <span>Active</span>
+            </div>
           </div>
           <div className="status-author-credit">
             Built by Asep Sayyad
