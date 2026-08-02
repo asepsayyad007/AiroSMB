@@ -101,20 +101,20 @@ export default function App() {
 
         {/* Server Status Footer Card */}
         <div className="server-status-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--accent-emerald)', fontWeight: 600, marginBottom: '2px' }}>
-            <span className="status-dot"></span>
+          <div className="status-header">
+            <span className="status-dot-pulse"></span>
             <span>Server Active</span>
           </div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+          <div className="status-ip-box">
             {primaryIp ? `${primaryIp}:${port}` : 'Loading LAN IP...'}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="status-app-info">
             <span>AiroShare</span>
-            <span style={{ color: 'var(--accent-orange)', background: 'rgba(255, 93, 11, 0.1)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontSize: '0.68rem', fontWeight: 700 }}>
+            <span className="status-version-badge">
               v{networkInfo?.version || '1.3.1'}
             </span>
           </div>
-          <div style={{ fontSize: '0.66rem', color: 'var(--text-dim)', textAlign: 'center', marginTop: '6px', fontWeight: 600, letterSpacing: '0.2px' }}>
+          <div className="status-author-credit">
             Built by Asep Sayyad
           </div>
         </div>
