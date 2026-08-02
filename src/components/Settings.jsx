@@ -341,7 +341,7 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
             Credits & Open Source Acknowledgements
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-            AiroShare is built on top of amazing open-source software:
+            Developed & maintained by <strong>Asep Sayyad</strong>. Built on top of amazing open-source software:
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', fontSize: '0.74rem' }}>
             <div style={{ background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>

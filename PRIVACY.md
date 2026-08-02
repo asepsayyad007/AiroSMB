@@ -1,4 +1,5 @@
 # Privacy Policy & Compliance
+Developed & maintained by [Asep Sayyad](https://github.com/asepsayyad007).
 
 AiroShare is built from the ground up with a privacy-first, local-only architecture. This document outlines how data is handled and AiroShare's compliance with global privacy standards.
 

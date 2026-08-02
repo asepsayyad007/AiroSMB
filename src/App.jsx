@@ -114,6 +114,9 @@ export default function App() {
               v{networkInfo?.version || '1.3.1'}
             </span>
           </div>
+          <div style={{ fontSize: '0.66rem', color: 'var(--text-dim)', textAlign: 'center', marginTop: '6px', fontWeight: 600, letterSpacing: '0.2px' }}>
+            Built by Asep Sayyad
+          </div>
         </div>
 
       </aside>

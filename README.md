@@ -4,6 +4,7 @@
 
 # AiroShare
 ### High-Performance Local Media Server & File Engine
+##### Built by [Asep Sayyad](https://github.com/asepsayyad007)
 
 [![Version](https://img.shields.io/badge/Version-1.3.1-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)](#technical-deep-dive)
