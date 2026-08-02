@@ -12,6 +12,12 @@
 
 **Stream 4K videos, music, and photos from your PC to Smart TVs, VLC, smartphones, and consoles over Wi-Fi with zero lag.**
 
+<br />
+
+<img src="public/App-profile.png" width="900" alt="AiroShare Dashboard Preview" />
+
+<br />
+
 [Key Features](#key-features) • [Quick Start](#quick-start-guide) • [Supported Devices](#supported-devices--protocols) • [System Architecture](#system-architecture) • [Technical Deep Dive](#technical-deep-dive)
 
 </div>
