@@ -108,9 +108,11 @@ export default function App() {
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
             {primaryIp ? `${primaryIp}:${port}` : 'Loading LAN IP...'}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 600, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>AiroShare</span>
-            <span>v{networkInfo?.version || '1.3.1'}</span>
+            <span style={{ color: 'var(--accent-orange)', background: 'rgba(255, 93, 11, 0.1)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontSize: '0.68rem', fontWeight: 700 }}>
+              v{networkInfo?.version || '1.3.1'}
+            </span>
           </div>
         </div>
 
