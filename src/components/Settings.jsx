@@ -325,23 +325,6 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
         </div>
       )}
 
-      {/* DLNA SSDP Broadcaster Settings Card */}
-      <div className="pro-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <Wifi size={18} color="var(--accent-orange)" />
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 600 }}>DLNA & UPnP Auto-Discovery Settings</h3>
-        </div>
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          DLNA SSDP multicast is broadcasting on UDP port <strong>1900</strong> (address <code>239.255.255.250</code>). Smart TVs and VLC players on local Wi-Fi will automatically discover AiroShare without manual configuration.
-        </p>
-      </div>
-
-      {/* Installed Version Footer Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '14px', marginTop: '10px' }}>
-        <span>AiroShare Media & File Server Platform</span>
-        <span>Version: <strong style={{ color: 'var(--accent-orange)' }}>v{networkInfo?.version || '1.2.0'}</strong></span>
-      </div>
-
     </div>
   );
 }

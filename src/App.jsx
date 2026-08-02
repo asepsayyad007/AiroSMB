@@ -105,8 +105,12 @@ export default function App() {
             <span className="status-dot"></span>
             <span>Server Active</span>
           </div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
             {primaryIp ? `${primaryIp}:${port}` : 'Loading LAN IP...'}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 600, borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>AiroShare</span>
+            <span>v{networkInfo?.version || '1.3.1'}</span>
           </div>
         </div>
 
