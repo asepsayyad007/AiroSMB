@@ -124,6 +124,26 @@ AiroShare is built to be a robust, high-performance, and lightweight local area 
 
 ---
 
+## Privacy & Compliance
+
+AiroShare is built from the ground up to be **100% private, self-hosted, and local-only**:
+* **No Cloud Connection**: All media streaming, folder browsing, and file transfers remain completely on your local computer and your private Wi-Fi network.
+* **No Analytics / Telemetry**: No usage stats, server logs, or metadata are ever collected or sent to external servers.
+* **Compliance by Design**: Fully compliant under the General Data Protection Regulation (GDPR), California Consumer Privacy Act (CCPA), and COPPA since no personal data is stored or processed on third-party servers.
+
+For details, check our full [PRIVACY.md](PRIVACY.md).
+
+## Credits
+
+AiroShare is built on top of awesome open-source technologies:
+* **Electron**: Native desktop app packaging.
+* **React & Vite**: Frontend user interface.
+* **Express**: HTTP file streaming & streaming endpoints.
+* **ftp-srv**: Native High-Performance Node FTP Server.
+* **simple-upnp-dlna**: SSDP & UPnP DLNA broadcaster.
+* **Lucide React**: Modern iconography.
+
 ## License
 
 This project is released under the **GNU General Public License v3**. Designed for high-speed local home media streaming and file sharing.
+

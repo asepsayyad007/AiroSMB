@@ -325,6 +325,53 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
         </div>
       )}
 
+      {/* Privacy, Compliance & Credits Card */}
+      <div className="pro-card" style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <h3 style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--accent-orange)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            Privacy & Legal Compliance
+          </h3>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+            AiroShare operates <strong>100% locally</strong> on your machine and private network. It collects zero telemetry, aggregates no usage statistics, and makes no outbound internet requests. This utility is fully compliant under GDPR, CCPA, and COPPA by design.
+          </p>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+          <h3 style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px' }}>
+            Credits & Open Source Acknowledgements
+          </h3>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+            AiroShare is built on top of amazing open-source software:
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', fontSize: '0.74rem' }}>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+              <strong>Electron</strong>
+              <div style={{ color: 'var(--text-dim)' }}>App Wrapper</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+              <strong>React & Vite</strong>
+              <div style={{ color: 'var(--text-dim)' }}>UI Framework</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+              <strong>Express</strong>
+              <div style={{ color: 'var(--text-dim)' }}>HTTP Server</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+              <strong>ftp-srv</strong>
+              <div style={{ color: 'var(--text-dim)' }}>FTP Server</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+              <strong>simple-upnp-dlna</strong>
+              <div style={{ color: 'var(--text-dim)' }}>SSDP Broadcaster</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+              <strong>Lucide Icons</strong>
+              <div style={{ color: 'var(--text-dim)' }}>Iconography</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
