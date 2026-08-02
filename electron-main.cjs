@@ -6,16 +6,17 @@ let mainWindow = null;
 let serverProcess = null;
 let tray = null;
 let isQuitting = false;
+let backendPort = 9900;
 
 // 1. Start backend Express server inside a child process
-function startServer() {
+function startServer(port) {
   const serverPath = path.join(__dirname, 'server.js');
   console.log(`[AiroShare Electron] Launching Express server child process: ${serverPath}`);
   
   serverProcess = fork(serverPath, [], {
     env: { 
       ...process.env, 
-      PORT: '3000',
+      PORT: port.toString(),
       NODE_ENV: app.isPackaged ? 'production' : 'development'
     },
     silent: false // pipes stdout/stderr to Electron console
@@ -69,6 +70,21 @@ function createTray() {
   });
 }
 
+// Helper to find a free TCP port dynamically starting from a preferred port
+function findFreePort(startPort) {
+  const net = require('net');
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.listen(startPort, '127.0.0.1', () => {
+      const port = server.address().port;
+      server.close(() => resolve(port));
+    });
+    server.on('error', () => {
+      resolve(findFreePort(startPort + 1));
+    });
+  });
+}
+
 // Helper to wait for a port to be listening before executing a callback
 function waitForPort(port, host, callback) {
   const net = require('net');
@@ -90,7 +106,7 @@ function waitForPort(port, host, callback) {
 }
 
 // 3. Create Main Application Window
-function createWindow() {
+function createWindow(port) {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -126,20 +142,20 @@ function createWindow() {
     
     const fallbackToExpress = () => {
       socket.destroy();
-      console.log('[AiroShare Electron] Vite dev server not detected. Waiting for Express server on port 3000 to boot...');
-      waitForPort(3000, '127.0.0.1', () => {
-        console.log('[AiroShare Electron] Express server started. Loading dashboard: http://localhost:3000');
-        if (mainWindow) mainWindow.loadURL('http://localhost:3000');
+      console.log(`[AiroShare Electron] Vite dev server not detected. Waiting for Express server on port ${port} to boot...`);
+      waitForPort(port, '127.0.0.1', () => {
+        console.log(`[AiroShare Electron] Express server started. Loading dashboard: http://localhost:${port}`);
+        if (mainWindow) mainWindow.loadURL(`http://localhost:${port}`);
       });
     };
 
     socket.on('error', fallbackToExpress);
     socket.on('timeout', fallbackToExpress);
   } else {
-    console.log('[AiroShare Electron] Waiting for local Express server on port 3000 to boot...');
-    waitForPort(3000, '127.0.0.1', () => {
-      console.log('[AiroShare Electron] Express server started. Loading: http://localhost:3000');
-      if (mainWindow) mainWindow.loadURL('http://localhost:3000');
+    console.log(`[AiroShare Electron] Waiting for local Express server on port ${port} to boot...`);
+    waitForPort(port, '127.0.0.1', () => {
+      console.log(`[AiroShare Electron] Express server started. Loading: http://localhost:${port}`);
+      if (mainWindow) mainWindow.loadURL(`http://localhost:${port}`);
     });
   }
 
@@ -166,22 +182,26 @@ function createWindow() {
 }
 
 // 4. App Lifecycle Events
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Set Application User Model ID for correct taskbar grouping and Windows notification titles
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.airoshare.app');
   }
   
-  startServer();
+  // Find a free TCP port starting from 9900 to avoid common local port conflicts
+  backendPort = await findFreePort(9900);
+  console.log(`[AiroShare Electron] Using dynamically allocated port: ${backendPort}`);
+  
+  startServer(backendPort);
   
   // Wait a moment for server socket to bind before loading window
   setTimeout(() => {
     createTray();
-    createWindow();
+    createWindow(backendPort);
   }, 1000);
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) createWindow(backendPort);
   });
 });
 

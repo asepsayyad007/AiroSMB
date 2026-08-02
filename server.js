@@ -6,6 +6,7 @@ import os from 'os';
 import multer from 'multer';
 import mime from 'mime-types';
 import QRCode from 'qrcode';
+import net from 'net';
 import AiroFtpServer from './ftpServer.js';
 import { execSync } from 'child_process';
 
@@ -16,12 +17,37 @@ import ssdpServer from './src/dlna/ssdp/ssdpServer.js';
 import getDeviceIcon from './src/dlna/device/icons.js';
 import clientTracker from './src/utils/clientTracker.js';
 
+// --- Helper: Find a free TCP port dynamically ---
+function findFreePort(start) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.listen(start, '0.0.0.0', () => {
+      const port = server.address().port;
+      server.close(() => resolve(port));
+    });
+    server.on('error', () => resolve(findFreePort(start + 1)));
+  });
+}
+
 const app = express();
-const PORT = process.env.PORT || 3000;
-let ftpPort = process.env.FTP_PORT || 2121;
+const PREFERRED_PORT = parseInt(process.env.PORT || '9900', 10);
+const PORT = await findFreePort(PREFERRED_PORT);
+
+const PREFERRED_FTP_PORT = parseInt(process.env.FTP_PORT || '2121', 10);
+const ftpPort = await findFreePort(PREFERRED_FTP_PORT);
 
 const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
 const VERSION = pkg.version;
+
+try {
+  fs.writeFileSync(
+    path.join(process.cwd(), 'config', 'port.json'), 
+    JSON.stringify({ port: PORT }, null, 2), 
+    'utf8'
+  );
+} catch (err) {
+  // Ignore
+}
 
 // Service Toggles State (3 Active Services)
 const servicesState = {
