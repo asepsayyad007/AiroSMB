@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.6] - 2026-08-03
+
+### Fixed
+- **Packaged App Blank Screen**: Resolved a fatal module resolution crash in the packaged Electron app. Previously, the backend server script (`server.js`) was unpacked into the `app.asar.unpacked` folder while `node_modules` remained inside `app.asar`, preventing ES module imports (like `express`) from resolving. This was fixed by keeping the backend source files packed inside `app.asar` to preserve the module lookup path.
+- **Read-Only ASAR Writes**: Configured the backend server to write user settings (`root.json`) to the writable User Application Data folder (`app.getPath('userData')`) in production instead of attempting to write to the read-only ASAR bundle, while gracefully falling back to local files in development.
+- **Production Port Sync Bypass**: Prevented writing of `port.json` when packaged, eliminating unhandled write errors inside the read-only ASAR folder.
+
 ## [1.3.5] - 2026-08-03
 
 ### Fixed
