@@ -21,14 +21,23 @@ const detectBrowserHostname = () => {
   return 'Home Server';
 };
 
-export default function Dashboard({ networkInfo, onRefreshNetwork }) {
+export default function Dashboard({ networkInfo, onRefreshNetwork, services: propServices, onToggleService }) {
   // Shared Directory Config State
   const [customPath, setCustomPath] = useState(networkInfo?.rootDirectory || '');
   const [savingPath, setSavingPath] = useState(false);
   const [pathMessage, setPathMessage] = useState('');
 
   // Live Service Toggles State (3 Active Services)
-  const [services, setServices] = useState({ http: true, ftp: true, dlna: true });
+  const [localServices, setLocalServices] = useState({ http: true, ftp: true, dlna: true });
+  const activeServices = propServices || localServices;
+
+  const handleToggle = (serviceName, state) => {
+    if (onToggleService) {
+      onToggleService(serviceName, state);
+    } else {
+      toggleService(serviceName, state);
+    }
+  };
 
   // Integrated File Browser State
   const [currentPath, setCurrentPath] = useState('');
@@ -56,10 +65,11 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   // Network variables (Physical LAN IP, zero 127.0.0.1 fallbacks)
   const primaryIp = networkInfo?.primaryIp || detectBrowserIp();
   const port = networkInfo?.port || window.location.port || 3000;
+  const ftpPort = networkInfo?.ftpPort || 2121;
   const hostname = networkInfo?.hostname || detectBrowserHostname();
   const connectionType = networkInfo?.connectionType || 'Wi-Fi / Ethernet';
   const serverUrl = primaryIp ? `http://${primaryIp}:${port}` : 'Loading URL...';
-  const ftpUrl = primaryIp ? `ftp://${primaryIp}:2121` : 'Loading FTP...';
+  const ftpUrl = primaryIp ? `ftp://${primaryIp}:${ftpPort}` : 'Loading FTP...';
   const storage = networkInfo?.storage || { total: 0, free: 0, used: 0, percentUsed: 0 };
 
   const formatGb = (bytes) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
@@ -70,7 +80,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
       const res = await fetch('/api/services/status');
       const data = await res.json();
       if (res.ok) {
-        setServices({
+        setLocalServices({
           http: data.http?.enabled ?? true,
           ftp: data.ftp?.enabled ?? true,
           dlna: data.dlna?.enabled ?? true
@@ -90,7 +100,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
         body: JSON.stringify({ service: serviceName, enable: targetState })
       });
       if (res.ok) {
-        setServices(prev => ({ ...prev, [serviceName]: targetState }));
+        setLocalServices(prev => ({ ...prev, [serviceName]: targetState }));
       }
     } catch (err) {
       console.error(`Error toggling service ${serviceName}:`, err);
@@ -123,30 +133,49 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
     if (networkInfo?.rootDirectory) setCustomPath(networkInfo.rootDirectory);
   }, [networkInfo]);
 
-  // Update Shared Root Directory
-  const handleUpdateRoot = async (e) => {
-    e.preventDefault();
-    if (!customPath.trim()) return;
+  // Handle Updating Shared Root Directory
+  const handleUpdateRoot = async (e, pathOverride) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const rawPath = (pathOverride || customPath).trim();
+    if (!rawPath) return;
+    const normalizedPath = rawPath.replace(/\\/g, '/');
     try {
       setSavingPath(true);
       setPathMessage('');
       const res = await fetch('/api/network/set-root', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPath: customPath.trim() })
+        body: JSON.stringify({ newPath: normalizedPath })
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.rootDirectory) {
         setPathMessage('Directory updated successfully.');
-        if (onRefreshNetwork) onRefreshNetwork();
-        fetchDirectory(customPath.trim());
+        setCustomPath(data.rootDirectory);
+        if (onRefreshNetwork) await onRefreshNetwork();
+        await fetchDirectory(data.rootDirectory);
       } else {
-        setPathMessage(`Error: ${data.error}`);
+        setPathMessage(`Error: ${data.error || 'Failed to update directory'}`);
       }
     } catch (err) {
       setPathMessage('Failed to update directory path.');
     } finally {
       setSavingPath(false);
+    }
+  };
+
+  const isElectron = !!(window.electronAPI && window.electronAPI.isElectron);
+
+  const handleBrowseFolder = async () => {
+    if (isElectron) {
+      try {
+        const selected = await window.electronAPI.selectFolder();
+        if (selected) {
+          setCustomPath(selected);
+          handleUpdateRoot(null, selected);
+        }
+      } catch (err) {
+        console.error('Error browsing folder:', err);
+      }
     }
   };
 
@@ -265,116 +294,48 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1280px', margin: '0 auto' }}>
       
-      {/* 1. Metric Overview Bar */}
-      <div className="pro-card" style={{ padding: '16px 20px' }}>
-        <div className="metrics-banner-grid">
-          <div className="metric-item">
-            <span className="metric-label">Server Host</span>
-            <span className="metric-value">{hostname}</span>
-          </div>
 
-          <div className="metric-item">
-            <span className="metric-label">Network Type</span>
-            <span className="metric-value">{connectionType}</span>
-          </div>
 
-          <div className="metric-item">
-            <span className="metric-label">Active Network IP</span>
-            <span className="metric-value">{primaryIp || 'Loading LAN IP...'}</span>
-          </div>
-
-          <div className="metric-item">
-            <span className="metric-label">DLNA Engine</span>
-            <span className="metric-value" style={{ color: services.dlna ? 'var(--accent-emerald)' : '#f87171', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="status-dot" style={{ background: services.dlna ? 'var(--accent-emerald)' : '#f87171' }}></span> 
-              {services.dlna ? 'Active' : 'Offline'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. 3 Active Services Cards with Live Start/Stop Toggles */}
-      <div className="grid-3">
-        
-        {/* HTTP Web Server */}
-        <div className="pro-card">
-          <div className="card-header-clean">
-            <span className="card-title-text">HTTP Web Engine</span>
-            <Wifi size={15} color="var(--accent-orange)" />
-          </div>
-          <div className="card-mono-value">
-            {serverUrl}
-          </div>
-          <button 
-            onClick={() => toggleService('http', !services.http)} 
-            className="btn-pro-secondary w-full"
-            style={{ justifyContent: 'center', background: services.http ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.http ? '#f87171' : 'var(--accent-emerald)' }}
-          >
-            <Power size={13} /> {services.http ? 'Stop Service' : 'Start Service'}
-          </button>
-        </div>
-
-        {/* FTP Streaming */}
-        <div className="pro-card">
-          <div className="card-header-clean">
-            <span className="card-title-text">FTP Streaming</span>
-            <Tv size={15} color="var(--accent-emerald)" />
-          </div>
-          <div className="card-mono-value">
-            {ftpUrl}
-          </div>
-          <button 
-            onClick={() => toggleService('ftp', !services.ftp)} 
-            className="btn-pro-secondary w-full"
-            style={{ justifyContent: 'center', background: services.ftp ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.ftp ? '#f87171' : 'var(--accent-emerald)' }}
-          >
-            <Power size={13} /> {services.ftp ? 'Stop Service' : 'Start Service'}
-          </button>
-        </div>
-
-        {/* DLNA Broadcaster */}
-        <div className="pro-card">
-          <div className="card-header-clean">
-            <span className="card-title-text">DLNA Broadcaster</span>
-            <Film size={15} color="var(--accent-amber)" />
-          </div>
-          <div className="card-mono-value">
-            UDP Port 1900
-          </div>
-          <button 
-            onClick={() => toggleService('dlna', !services.dlna)} 
-            className="btn-pro-secondary w-full"
-            style={{ justifyContent: 'center', background: services.dlna ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)', color: services.dlna ? '#f87171' : 'var(--accent-emerald)' }}
-          >
-            <Power size={13} /> {services.dlna ? 'Stop Service' : 'Start Service'}
-          </button>
-        </div>
-
-      </div>
-
-      {/* 3. Core Shared Directory & Integrated File Browser Section */}
+      {/* Core Shared Directory & Integrated File Browser Section */}
       <div className="pro-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         
-        {/* Directory Switcher Bar */}
+        {/* Directory Switcher Bar (Large & Prominent Controls) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-            <Folder size={18} color="var(--accent-orange)" />
-            <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>Shared Directory:</span>
-            <form onSubmit={handleUpdateRoot} style={{ display: 'flex', gap: '8px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '300px' }}>
+            <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Shared Folder:</span>
+            <form onSubmit={handleUpdateRoot} style={{ display: 'flex', gap: '8px', flex: 1, alignItems: 'center' }}>
               <input 
                 type="text" 
                 value={customPath}
                 onChange={(e) => setCustomPath(e.target.value)}
+                onBlur={() => {
+                  if (customPath.trim() && customPath.trim() !== (networkInfo?.rootDirectory || '')) {
+                    handleUpdateRoot();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleUpdateRoot(e);
+                  }
+                }}
                 placeholder="Path to folder..."
                 className="pro-input"
+                style={{ fontSize: '0.85rem', padding: '8px 14px', flex: 1 }}
               />
-              <button type="submit" className="btn-pro-primary" disabled={savingPath}>
-                {savingPath ? 'Saving...' : 'Apply'}
-              </button>
+              {isElectron && (
+                <button 
+                  type="button" 
+                  className="btn-pro-secondary" 
+                  onClick={handleBrowseFolder} 
+                  style={{ fontSize: '0.85rem', fontWeight: 600, padding: '8px 18px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Folder size={15} color="var(--accent-orange)" /> Browse...
+                </button>
+              )}
             </form>
           </div>
           {pathMessage && (
-            <span style={{ fontSize: '0.82rem', color: pathMessage.startsWith('Directory') ? 'var(--accent-emerald)' : '#f87171' }}>
+            <span style={{ fontSize: '0.82rem', color: pathMessage.startsWith('Directory') ? 'var(--accent-emerald)' : '#f87171', fontWeight: 500 }}>
               {pathMessage}
             </span>
           )}
@@ -455,8 +416,17 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
               ))}
             </div>
 
-            <button className="btn-pro-secondary" onClick={() => fetchDirectory(currentPath)} style={{ padding: '6px 10px' }}>
-              <RefreshCw size={14} className={loadingFiles ? 'spin' : ''} />
+            <button 
+              className="btn-pro-secondary" 
+              onClick={() => {
+                fetchDirectory(currentPath);
+                if (onRefreshNetwork) onRefreshNetwork();
+              }} 
+              style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Refresh Directory Files & Network Info"
+            >
+              <RefreshCw size={13} className={loadingFiles ? 'spin' : ''} />
+              <span>Refresh</span>
             </button>
 
             <button className="btn-pro-primary" onClick={() => setShowUploadModal(true)} style={{ padding: '6px 12px' }}>
@@ -576,22 +546,54 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                             style={{ cursor: 'pointer', accentColor: 'var(--accent-orange)', width: '16px', height: '16px' }}
                           />
 
-                          <div style={{ color: 'var(--accent-orange)' }}>{getFileIcon(file.category)}</div>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</span>
+                          {/* Category Icon Box (No Thumbnail Images) */}
+                          <div style={{ flexShrink: 0, width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {file.category === 'video' ? <Film size={18} color="var(--accent-orange)" /> :
+                             file.category === 'audio' ? <Music size={18} color="var(--accent-emerald)" /> :
+                             file.category === 'image' ? <ImageIcon size={18} color="#3b82f6" /> :
+                             <FileText size={18} color="var(--text-muted)" />}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {file.displayName || file.name}
+                              </span>
+                              {file.quality && (
+                                <span style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  letterSpacing: '0.5px',
+                                  lineHeight: '1.2',
+                                  background: file.quality === '4K' ? 'rgba(234, 179, 8, 0.2)' : file.quality === 'FHD' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                                  color: file.quality === '4K' ? '#facc15' : file.quality === 'FHD' ? 'var(--accent-emerald)' : '#818cf8',
+                                  border: `1px solid ${file.quality === '4K' ? 'rgba(234, 179, 8, 0.4)' : file.quality === 'FHD' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(99, 102, 241, 0.4)'}`
+                                }}>
+                                  {file.quality}
+                                </span>
+                              )}
+                            </div>
+                            {file.displayName && file.displayName !== file.name && (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {file.name}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', width: '100px' }}>
                           {(file.size / (1024 * 1024)).toFixed(1)} MB
                         </div>
 
-                        <div style={{ display: 'flex', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                           <button 
                             className="btn-pro-secondary" 
-                            style={{ padding: '4px 8px', fontSize: '0.75rem', color: 'var(--accent-orange)', borderColor: 'rgba(255, 93, 11, 0.3)' }} 
+                            style={{ padding: '4px 8px', color: 'var(--accent-orange)', borderColor: 'rgba(255, 93, 11, 0.3)' }} 
                             onClick={() => openShareModal([file.path])}
-                            title="Send single file to phone"
+                            title="Send to Phone (Scan QR Code)"
                           >
-                            <Smartphone size={12} /> Send to Phone
+                            <Smartphone size={14} />
                           </button>
 
                           {(file.category === 'video' || file.category === 'audio') && (
@@ -599,9 +601,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork }) {
                               <Play size={12} /> Play
                             </button>
                           )}
-                          <a href={vlcUrl} className="btn-pro-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', textDecoration: 'none' }}>
-                            <ExternalLink size={12} /> VLC
-                          </a>
                           <a href={file.downloadUrl} className="btn-pro-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', textDecoration: 'none' }}>
                             <Download size={12} />
                           </a>

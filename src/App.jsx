@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, QrCode, Settings as SettingsIcon, Wifi, Users, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, QrCode, Settings as SettingsIcon, Wifi, Users, RefreshCw, Tv, Film, Power } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ActiveClients from './components/ActiveClients';
 import Settings from './components/Settings';
@@ -26,6 +26,7 @@ export default function App() {
   const [networkInfo, setNetworkInfo] = useState(null);
   const [showTopQrModal, setShowTopQrModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [services, setServices] = useState({ http: true, ftp: true, dlna: true });
 
   const fetchNetworkInfo = async () => {
     try {
@@ -33,9 +34,30 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         setNetworkInfo(data);
+        if (data.services) setServices(data.services);
       }
     } catch (err) {
       console.error('Failed to fetch server network info:', err);
+    }
+  };
+
+  const toggleService = async (serviceName, targetState) => {
+    // Optimistic UI state update so toggle slides instantly on click!
+    setServices(prev => ({ ...prev, [serviceName]: targetState }));
+    try {
+      const res = await fetch('/api/services/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service: serviceName, enable: targetState, state: targetState })
+      });
+      const data = await res.json();
+      if (res.ok && data.services) {
+        setServices(data.services);
+      }
+    } catch (err) {
+      console.error('Failed to toggle service:', err);
+      // Revert if API request failed
+      setServices(prev => ({ ...prev, [serviceName]: !targetState }));
     }
   };
 
@@ -44,7 +66,8 @@ export default function App() {
   }, []);
 
   const primaryIp = networkInfo?.primaryIp || detectBrowserIp();
-  const port = networkInfo?.port || window.location.port || 3000;
+  const port = networkInfo?.port || window.location.port || 9900;
+  const ftpPort = networkInfo?.ftpPort || 2121;
   const hostname = networkInfo?.hostname || detectBrowserHostname();
   const connectionType = networkInfo?.connectionType || 'Network';
   const serverUrl = primaryIp ? `http://${primaryIp}:${port}` : '';
@@ -98,6 +121,80 @@ export default function App() {
             </button>
           </li>
         </ul>
+
+        {/* Server Engines Widget Below Settings */}
+        <div className="sidebar-services-widget">
+          <div className="sidebar-widget-header">
+            <span className="sidebar-widget-title">SERVER ENGINES</span>
+          </div>
+
+          <div className="sidebar-services-list">
+            {/* HTTP Web Engine */}
+            <div className="sidebar-engine-row">
+              <div className="sidebar-engine-meta">
+                <div className="sidebar-engine-title-row">
+                  <Wifi size={13} color={services.http ? "var(--accent-orange)" : "var(--text-muted)"} />
+                  <span className="sidebar-engine-name">HTTP Web</span>
+                </div>
+                <span className="sidebar-engine-sub">Port {port}</span>
+              </div>
+              <button 
+                type="button"
+                role="switch"
+                aria-checked={services.http}
+                onClick={() => toggleService('http', !services.http)} 
+                className={`engine-toggle-switch ${services.http ? 'active' : ''}`}
+                title={services.http ? 'Stop HTTP Web Engine' : 'Start HTTP Web Engine'}
+              >
+                <span className="toggle-thumb" />
+              </button>
+            </div>
+
+            {/* FTP Streaming Engine */}
+            <div className="sidebar-engine-row">
+              <div className="sidebar-engine-meta">
+                <div className="sidebar-engine-title-row">
+                  <Tv size={13} color={services.ftp ? "var(--accent-emerald)" : "var(--text-muted)"} />
+                  <span className="sidebar-engine-name">FTP Stream</span>
+                </div>
+                <span className="sidebar-engine-sub">Port {ftpPort}</span>
+              </div>
+              <button 
+                type="button"
+                role="switch"
+                aria-checked={services.ftp}
+                onClick={() => toggleService('ftp', !services.ftp)} 
+                className={`engine-toggle-switch ${services.ftp ? 'active' : ''}`}
+                title={services.ftp ? 'Stop FTP Server' : 'Start FTP Server'}
+              >
+                <span className="toggle-thumb" />
+              </button>
+            </div>
+
+            {/* DLNA Server Engine */}
+            <div className="sidebar-engine-row">
+              <div className="sidebar-engine-meta">
+                <div className="sidebar-engine-title-row">
+                  <Film size={13} color={services.dlna ? "#f59e0b" : "var(--text-muted)"} />
+                  <span className="sidebar-engine-name">DLNA Server</span>
+                </div>
+                <span className="sidebar-engine-sub">UDP 1900</span>
+              </div>
+              <button 
+                type="button"
+                role="switch"
+                aria-checked={services.dlna}
+                onClick={() => toggleService('dlna', !services.dlna)} 
+                className={`engine-toggle-switch ${services.dlna ? 'active' : ''}`}
+                title={services.dlna ? 'Stop DLNA Broadcaster' : 'Start DLNA Broadcaster'}
+              >
+                <span className="toggle-thumb" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+
 
         {/* Server Status Footer Card */}
         <div className="server-status-card">
@@ -165,6 +262,8 @@ export default function App() {
             <Dashboard 
               networkInfo={networkInfo} 
               onRefreshNetwork={fetchNetworkInfo}
+              services={services}
+              onToggleService={toggleService}
             />
           )}
 

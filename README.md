@@ -6,7 +6,7 @@
 ### High-Performance Local Media Server & File Engine
 ##### Built by [Asep Sayyad](https://github.com/asepsayyad007)
 
-[![Version](https://img.shields.io/badge/Version-1.3.2-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
+[![Version](https://img.shields.io/badge/Version-1.3.5-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)](#technical-deep-dive)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge)](LICENSE)
 [![Stack](https://img.shields.io/badge/Stack-Node.js%20%7C%20React%20%7C%20Vite-brightgreen?style=for-the-badge&logo=node.js)](#)
@@ -28,8 +28,10 @@
 ## Key Features
 
 * **Instant DLNA Broadcasts**: Auto-discover and stream your media library to Smart TVs (Samsung Tizen, LG webOS, Android TV, FireStick), VLC, Kodi, Xbox, and PlayStation via SSDP/UPnP AV.
+* **Rich UPnP Metadata**: DLNA `<res>` items expose `duration`, `bitrate`, `sampleFrequency`, and `nrAudioChannels` — extracted at scan time from binary file headers with no external tools.
+* **Smooth Seeking & Scrubbing**: `DLNA.ORG_OP=11` enables both byte-range and time-based seeking across all 30+ supported media types.
 * **Dual-Select "Send to Phone"**: Select multiple files or folders from your PC and instantly generate a local pairing QR code for easy smartphone downloading.
-* **High-Speed FTP Engine**: Built-in anonymous FTP streaming server (`ftp://<IP>:2121`) for password-free file mounting and streaming.
+* **High-Speed FTP Engine**: Built-in anonymous FTP streaming server with a dynamically allocated port (default `2121`, auto-increments on conflict).
 * **Live Service Controller**: Enable, disable, or adjust HTTP, FTP, and DLNA servers independently in real-time from the web dashboard.
 * **Strict Path Isolation**: Built-in directory traversal guard to secure and restrict file browsing strictly to shared folders.
 * **Active Client Monitoring**: Real-time connected client tracker displaying active streaming bandwidth, device names, and client logs.
@@ -42,12 +44,13 @@
 
 | Device / Client | Connection Protocol | Formats Supported |
 | :--- | :--- | :--- |
-| **Samsung Smart TV (Tizen)** | UPnP / DLNA Discovery | MP4, MKV, JPG, PNG |
-| **LG Smart TV (webOS)** | UPnP / DLNA Discovery | MP4, MKV, JPG, PNG |
-| **Android TV / FireStick** | SSDP Multicast + DLNA | MP4, MKV, TS, MP3 |
-| **VLC Media Player** | UPnP / M3U Playlist / HTTP / FTP | MP4, MKV, AVI, MOV, MP3, FLAC, JPG |
-| **Kodi Media Center** | UPnP / DLNA / Plex Feed | MP4, MKV, AVI, FLAC |
-| **Xbox & PlayStation** | Media Player DLNA Client | MP4, MP3, JPG |
+| **Samsung Smart TV (Tizen)** | UPnP / DLNA Discovery | MP4, MKV, TS, JPG, PNG |
+| **LG Smart TV (webOS)** | UPnP / DLNA Discovery | MP4, MKV, TS, JPG, PNG |
+| **Android TV / FireStick** | SSDP Multicast + DLNA | MP4, MKV, TS, M4V, MP3 |
+| **VLC Media Player** | UPnP / M3U Playlist / HTTP / FTP | MP4, MKV, AVI, MOV, WMV, WebM, MP3, FLAC, WAV, OGG, JPG |
+| **Kodi Media Center** | UPnP / DLNA / Plex Feed | MP4, MKV, AVI, FLAC, OPUS |
+| **Xbox & PlayStation** | Media Player DLNA Client | MP4, MP3, JPG, PNG |
+| **Sonos / AV Receivers** | UPnP ContentDirectory | MP3, FLAC, WAV, AAC, M4A, OGG |
 
 ---
 
@@ -77,7 +80,9 @@ npm run server
 The server will initialize and output local network credentials:
 * **Web Dashboard**: `http://localhost:9900` (or local LAN IP: `http://192.168.1.120:9900`)
 * **SSDP/DLNA Broadcast URL**: `http://192.168.1.120:9900/dlna/description.xml`
-* **FTP Stream Port**: `ftp://192.168.1.120:2121`
+* **FTP Stream Port**: `ftp://192.168.1.120:2121` (auto-selected if port is busy)
+
+> **Note**: The HTTP port defaults to `9900` and is dynamically allocated — if `9900` is in use, AiroShare automatically selects the next available port.
 
 ---
 
@@ -86,14 +91,17 @@ The server will initialize and output local network credentials:
 ```
 AiroShare/
 ├── config/                  # Server & DLNA configuration
+│   └── dlna.js              # 30+ format protocolInfo map (DLNA.ORG_OP=11)
 ├── src/                     # React Frontend & DLNA Engine
 │   ├── components/          # Dashboard, ActiveClients & Settings UI
 │   ├── dlna/
 │   │   ├── ssdp/            # Multicast SSDP Broadcaster (UDP 1900)
 │   │   ├── device/          # UPnP Device XML & Icon Handlers
 │   │   ├── soap/            # SOAP Request & Response Parser
-│   │   └── contentDirectory/# MediaStore & ContentDirectory Service
-│   └── utils/               # Real-time Client Tracker & Stream Handler
+│   │   ├── xml/             # DIDL-Lite XML Generator (enriched metadata)
+│   │   ├── contentDirectory/# MediaStore & ContentDirectory Service
+│   │   └── utils/           # Stream Handler (2MB buffer) & Media Prober
+│   └── utils/               # Real-time Client Tracker
 ├── server.js                # Express Server, File Engine & API Router
 ├── ftpServer.js             # High-Speed FTP Server Engine
 └── simple_dlna.js           # Lightweight Standalone DLNA CLI Server
@@ -111,10 +119,16 @@ AiroShare is built to be a robust, high-performance, and lightweight local area 
 * **Fully Dynamic Configuration**: The system hostname and IP addresses adapt dynamically on server start. If the software is installed on another machine (e.g., Ubuntu Linux, macOS, or another Windows PC), it resolves everything correctly without manual setup.
 
 ### High-Speed Streaming Mechanics
-* **Express HTTP Stream Engine**: High-performance HTTP server supporting chunked file streaming with `Accept-Ranges: bytes`. This allows Smart TVs and media players to scrub/seek instantly through large 4K UHD video files.
+* **Express HTTP Stream Engine**: High-performance HTTP server supporting chunked file streaming with `Accept-Ranges: bytes` and 2MB read buffer chunks. Smart TVs and media players can scrub/seek instantly through large 4K UHD video files.
+* **DLNA.ORG_OP=11 Seeking**: Both byte-range (`01`) and time-based (`10`) seeking are enabled via `DLNA.ORG_OP=11` in all protocol info strings and HTTP stream response headers. This unlocks smooth scrubbing in VLC, Kodi, and all Smart TV remotes.
 * **SSDP Multicast Broadcaster**: Custom SSDP implementation running on UDP `239.255.255.250:1900`. It broadcasts location packets pointing to `/dlna/description.xml` to notify VLC and Smart TVs of the AiroShare media server's presence.
 * **Anonymous FTP Server**: High-speed FTP engine (`ftp-srv`) mapped directly to the shared directory root. It allows zero-configuration anonymous login (`anonymous:anonymous`) for simple file access in third-party clients.
-* **VLC UPnP Icon Renderer**: Generates valid 24-bit RGBA binary PNG buffers for `/icon-64.png`, `/icon-128.png`, and `/icon-256.png` so that the AiroShare Sunset icon appears next to the device name inside VLC playlist interfaces.
+* **VLC UPnP Icon Renderer**: Serves a transparent 256×256 PNG from `public/AiroShare.png` at `/dlna/icon-256.png` so the AiroShare logo appears inside VLC, Kodi, and Smart TV device lists.
+
+### Rich UPnP Media Metadata
+* **Binary Media Prober**: `mediaProber.js` reads raw binary file headers at scan time (no ffprobe required) to extract `duration`, `bitrate`, `sampleFrequency`, and `nrAudioChannels`. Supports MP4 `mvhd` atom, MKV `Duration` EBML element, MP3 frame sync headers, FLAC `STREAMINFO`, and WAV `fmt` chunk.
+* **Enriched DIDL-Lite XML**: All UPnP `<res>` items include `duration`, `bitrate`, `nrAudioChannels`, and `sampleFrequency` when available — enabling progress bars, seek previews, and audio renderer configuration in Smart TV UIs and Sonos/AV receivers.
+* **30+ Format Support**: `mimeProtocolInfoMap` covers video (`.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.webm`, `.ts`, `.m2ts`, `.mpg`, `.flv`, `.3gp`, `.vob`, `.ogv`), audio (`.mp3`, `.flac`, `.wav`, `.aac`, `.m4a`, `.ogg`, `.opus`, `.wma`, `.alac`, `.mka`), and images (`.jpg`, `.png`, `.webp`, `.gif`, `.bmp`, `.tiff`).
 
 ### Security Isolation
 * **Path Containment Policy**: To prevent directory traversal security risks, the file browsing API endpoint (`/api/files/browse`) validates paths against the shared `rootDirectory` using relative path calculations. Any attempt to traverse above the shared root folder is blocked and safely restricted back to the shared root.

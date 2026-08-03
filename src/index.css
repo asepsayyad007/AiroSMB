@@ -652,3 +652,175 @@ body {
   .content-viewport { padding: 20px; }
   .top-bar { height: auto; padding: 16px 20px; flex-direction: column; gap: 12px; }
 }
+
+/* Sidebar Server Engines & Active Services Panel */
+.sidebar-services-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  margin-bottom: 12px;
+  padding: 12px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+}
+
+.sidebar-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  padding: 0 2px;
+}
+
+.sidebar-service-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: var(--transition);
+}
+
+.sidebar-service-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Sidebar Active Server Engines Widget & iOS Style Toggle Switches */
+.sidebar-services-widget {
+  margin-top: 18px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-widget-header {
+  padding-bottom: 2px;
+}
+
+.sidebar-widget-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.sidebar-services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-engine-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: all 0.2s ease;
+}
+
+.sidebar-engine-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-engine-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-engine-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-engine-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.sidebar-engine-sub {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  padding-left: 19px;
+}
+
+/* 144Hz Ultra-Smooth Glassmorphic Toggle Switch */
+.engine-toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: rgba(220, 38, 38, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 22px;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  cursor: pointer;
+  padding: 2px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.35s ease, 
+              box-shadow 0.35s ease;
+  outline: none;
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
+  will-change: transform, background, box-shadow;
+}
+
+.engine-toggle-switch:hover {
+  transform: scale(1.05);
+}
+
+.engine-toggle-switch:active {
+  transform: scale(0.96);
+}
+
+.engine-toggle-switch.active {
+  background: rgba(16, 185, 129, 0.35);
+  border-color: rgba(16, 185, 129, 0.65);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2), 
+              0 0 14px rgba(16, 185, 129, 0.45), 
+              0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.engine-toggle-switch .toggle-thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+  border-radius: 50%;
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  will-change: transform;
+}
+
+.engine-toggle-switch.active .toggle-thumb {
+  transform: translateX(18px);
+  background: linear-gradient(135deg, #ffffff 0%, #d1fae5 100%);
+}

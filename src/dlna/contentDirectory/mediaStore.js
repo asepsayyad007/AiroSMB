@@ -3,6 +3,7 @@ import path from 'path';
 import mime from 'mime-types';
 import dlnaConfig from '../../../config/dlna.js';
 import probeMediaFile from '../utils/mediaProber.js';
+import { cleanMediaName } from '../utils/posterFetcher.js';
 
 /**
  * Robust UPnP / DLNA MediaStore
@@ -15,6 +16,7 @@ class MediaStore {
     this.items = new Map();
     this.lastScanTime = null;
     this.isScanning = false;
+    this.systemUpdateId = 1;
 
     this.initContainers();
   }
@@ -97,17 +99,12 @@ class MediaStore {
     if (!id || id === '0' || id === 'root' || id === '-1') return '0';
     const lower = String(id).toLowerCase().trim();
 
-    if (['1', '0/1', 'v', 'video', 'videos', 'movie', 'movies', '0/video', '0/videos', '0/movies', '0/all'].includes(lower)) {
-      return '0/all';
-    }
-
-    if (['2', '0/2', 'a', 'audio', 'music', '0/audio', '0/music'].includes(lower)) {
-      return '0/music';
-    }
-
-    if (['3', '0/3', 'p', 'photo', 'photos', 'image', 'images', '0/photo', '0/photos'].includes(lower)) {
-      return '0/photos';
-    }
+    if (['0/all', 'all'].includes(lower)) return '0/all';
+    if (['0/movies', 'movies', 'movie'].includes(lower)) return '0/movies';
+    if (['0/videos', 'videos', 'video', 'v', '1', '0/1'].includes(lower)) return '0/videos';
+    if (['0/tvshows', 'tvshows', 'tvshow', 'tv'].includes(lower)) return '0/tvshows';
+    if (['0/music', 'music', 'audio', 'a', '2', '0/2'].includes(lower)) return '0/music';
+    if (['0/photos', 'photos', 'photo', 'images', 'image', 'p', '3', '0/3'].includes(lower)) return '0/photos';
 
     if (this.containers.has(id)) return id;
     return id;
@@ -125,6 +122,7 @@ class MediaStore {
         return;
       }
 
+      this.systemUpdateId++;
       this.initContainers();
       this.items.clear();
 
@@ -160,6 +158,15 @@ class MediaStore {
               if (parentCont && !parentCont.childrenIds.includes(folderContainerId)) {
                 parentCont.childrenIds.push(folderContainerId);
               }
+
+              // Categorize TV series folders into 0/tvshows container
+              const isTvFolder = /\b(s\d{1,2}|season\s*\d{1,2}|series|tvshows?|episodes?)\b/i.test(entry.name);
+              if (isTvFolder) {
+                const tvContainer = this.containers.get('0/tvshows');
+                if (tvContainer && !tvContainer.childrenIds.includes(folderContainerId)) {
+                  tvContainer.childrenIds.push(folderContainerId);
+                }
+              }
             }
             scanDir(fullPath, folderContainerId);
           } else if (entry.isFile()) {
@@ -186,10 +193,16 @@ class MediaStore {
             else if (isAudio) upnpClass = 'object.item.audioItem.musicTrack';
             else if (isImage) upnpClass = 'object.item.imageItem.photo';
 
+            const cleaned = cleanMediaName(entry.name);
+            let displayTitle = cleaned.title || entry.name;
+            if (cleaned.year) displayTitle += ` (${cleaned.year})`;
+            if (cleaned.quality) displayTitle += ` [${cleaned.quality}]`;
+
             const itemObj = {
               id: itemId,
               parentId: parentContainerId,
               title: entry.name,
+              displayTitle,
               fullPath,
               sizeBytes: stat.size,
               modifiedTime: stat.mtime,
@@ -201,7 +214,12 @@ class MediaStore {
               duration: null,
               bitrate: null,
               sampleFrequency: null,
-              nrAudioChannels: null
+              nrAudioChannels: null,
+              // Media poster metadata (populated keyless async after scan)
+              posterHash: null,
+              mediaTitle: cleaned.title || null,
+              mediaYear: cleaned.year || null,
+              mediaQuality: cleaned.quality || null
             };
 
             // Probe binary headers for media metadata (non-blocking, never throws)
@@ -223,11 +241,20 @@ class MediaStore {
               if (!this.containers.get('0/videos').childrenIds.includes(itemId)) {
                 this.containers.get('0/videos').childrenIds.push(itemId);
               }
-              if (!this.containers.get('0/movies').childrenIds.includes(itemId)) {
-                this.containers.get('0/movies').childrenIds.push(itemId);
-              }
-              if (/s\d{1,2}e\d{1,2}/i.test(entry.name) || /season/i.test(entry.name)) {
-                this.containers.get('0/tvshows').childrenIds.push(itemId);
+
+              // Check if file or parent folder indicates a TV series episode
+              const tvPattern = /\b(s\d{1,2}(e\d{1,2})?|season\s*\d{1,2}|episode\s*\d{1,2}|ep?\d{1,2}|\d{1,2}x\d{2})\b/i;
+              const isTvShow = tvPattern.test(entry.name) || tvPattern.test(dirPath);
+
+              if (isTvShow) {
+                itemObj.upnpClass = 'object.item.videoItem.musicVideoClip';
+                if (!this.containers.get('0/tvshows').childrenIds.includes(itemId)) {
+                  this.containers.get('0/tvshows').childrenIds.push(itemId);
+                }
+              } else {
+                if (!this.containers.get('0/movies').childrenIds.includes(itemId)) {
+                  this.containers.get('0/movies').childrenIds.push(itemId);
+                }
               }
             } else if (isAudio) {
               this.containers.get('0/music').childrenIds.push(itemId);

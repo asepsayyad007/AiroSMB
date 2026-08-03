@@ -110,6 +110,17 @@ class SsdpServer {
     }
   }
 
+  notifyUpdate(primaryIp, port) {
+    if (primaryIp) this.primaryIp = primaryIp;
+    if (port) this.port = port;
+    if (this.isRunning) {
+      this.sendNotify('ssdp:byebye');
+      setTimeout(() => {
+        this.sendNotifyBurst();
+      }, 200);
+    }
+  }
+
   sendNotifyBurst() {
     let count = 0;
     const burstTimer = setInterval(() => {

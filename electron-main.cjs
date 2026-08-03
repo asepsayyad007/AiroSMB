@@ -2,6 +2,10 @@ const { app, BrowserWindow, ipcMain, dialog, Tray, Menu } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 
+// Prevent Windows file lock conflicts on Chromium disk & GPU cache
+app.commandLine.appendSwitch('disable-http-cache');
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+
 let mainWindow = null;
 let serverProcess = null;
 let tray = null;
@@ -20,6 +24,13 @@ function startServer(port) {
       NODE_ENV: app.isPackaged ? 'production' : 'development'
     },
     silent: false // pipes stdout/stderr to Electron console
+  });
+
+  serverProcess.on('message', (msg) => {
+    if (msg && msg.type === 'PORT_INITIALIZED' && msg.port) {
+      console.log(`[AiroShare Electron] Active server port confirmed: ${msg.port}`);
+      backendPort = msg.port;
+    }
   });
 
   serverProcess.on('error', (err) => {
@@ -105,6 +116,38 @@ function waitForPort(port, host, callback) {
   socket.on('timeout', retry);
 }
 
+// Helper to wait for Express server HTTP API to be 200 OK ready before loading dashboard
+function waitForExpressReady(getPortFn, callback) {
+  const http = require('http');
+  const startTime = Date.now();
+  let done = false;
+
+  const check = () => {
+    if (done) return;
+    const currentPort = typeof getPortFn === 'function' ? getPortFn() : getPortFn;
+    const req = http.get(`http://127.0.0.1:${currentPort}/api/network/info`, (res) => {
+      if (done) return;
+      if (res.statusCode === 200) {
+        done = true;
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 1000 - elapsed);
+        setTimeout(() => callback(currentPort), remaining);
+      } else {
+        setTimeout(check, 250);
+      }
+    });
+    req.on('error', () => {
+      if (!done) setTimeout(check, 250);
+    });
+    req.setTimeout(400, () => {
+      req.destroy();
+      if (!done) setTimeout(check, 250);
+    });
+  };
+
+  check();
+}
+
 // 3. Create Main Application Window
 function createWindow(port) {
   mainWindow = new BrowserWindow({
@@ -121,43 +164,28 @@ function createWindow(port) {
     }
   });
 
-  // Remove the default File / Edit / View / Window / Help menu bar
+  // Remove default File / Edit / View / Window / Help menu bar
   mainWindow.removeMenu();
+
+  // Forward browser console logs and errors directly to terminal output
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Browser Window] ${message}`);
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[Electron Window Load Error] Code ${errorCode}: ${errorDescription} for ${validatedURL}`);
+  });
 
   // Load loading screen immediately to show visual progress while server boots
   mainWindow.loadFile(path.join(__dirname, 'public', 'loading.html'));
 
-  const isDev = !app.isPackaged;
-
-  if (isDev) {
-    // Check if Vite dev server is running on 5173
-    const net = require('net');
-    const socket = new net.Socket();
-    socket.setTimeout(300);
-    socket.connect(5173, '127.0.0.1', () => {
-      socket.destroy();
-      console.log('[AiroShare Electron] Vite dev server detected. Loading dev dashboard: http://localhost:5173');
-      if (mainWindow) mainWindow.loadURL('http://localhost:5173');
-    });
-    
-    const fallbackToExpress = () => {
-      socket.destroy();
-      console.log(`[AiroShare Electron] Vite dev server not detected. Waiting for Express server on port ${port} to boot...`);
-      waitForPort(port, '127.0.0.1', () => {
-        console.log(`[AiroShare Electron] Express server started. Loading dashboard: http://localhost:${port}`);
-        if (mainWindow) mainWindow.loadURL(`http://localhost:${port}`);
-      });
-    };
-
-    socket.on('error', fallbackToExpress);
-    socket.on('timeout', fallbackToExpress);
-  } else {
-    console.log(`[AiroShare Electron] Waiting for local Express server on port ${port} to boot...`);
-    waitForPort(port, '127.0.0.1', () => {
-      console.log(`[AiroShare Electron] Express server started. Loading: http://localhost:${port}`);
-      if (mainWindow) mainWindow.loadURL(`http://localhost:${port}`);
-    });
-  }
+  const getActivePort = () => backendPort || port;
+  console.log(`[AiroShare Electron] Waiting for local Express server on port ${getActivePort()} to boot...`);
+  
+  waitForExpressReady(getActivePort, (activePort) => {
+    console.log(`[AiroShare Electron] Express server started. Loading dashboard: http://localhost:${activePort}`);
+    if (mainWindow) mainWindow.loadURL(`http://localhost:${activePort}`);
+  });
 
   // Handle window close interception (Minimize to Tray)
   mainWindow.on('close', (event) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, HardDrive, Tv, Wifi, Check, Folder, ChevronRight } from 'lucide-react';
+import { Settings as SettingsIcon, HardDrive, Tv, Wifi, Check, Folder, ChevronRight, Film } from 'lucide-react';
 
 export default function Settings({ networkInfo, onRefreshNetwork }) {
   const isElectron = !!(window.electronAPI && window.electronAPI.isElectron);
@@ -8,8 +8,10 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
   const [ftpPortInput, setFtpPortInput] = useState(2121);
   const [savingPath, setSavingPath] = useState(false);
   const [savingFtp, setSavingFtp] = useState(false);
+  const [refreshingPosters, setRefreshingPosters] = useState(false);
   const [msgPath, setMsgPath] = useState('');
   const [msgFtp, setMsgFtp] = useState('');
+  const [msgPosters, setMsgPosters] = useState('');
   const [directoriesInfo, setDirectoriesInfo] = useState({ shortcuts: [], drives: [] });
 
   useEffect(() => {
@@ -19,6 +21,23 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
       });
     }
   }, [isElectron]);
+
+  const handleRefreshPosters = async () => {
+    try {
+      setRefreshingPosters(true);
+      setMsgPosters('');
+      const res = await fetch('/api/posters/refresh', { method: 'POST' });
+      if (res.ok) {
+        setMsgPosters('Keyless poster scan triggered! Check Dashboard.');
+      } else {
+        setMsgPosters('Failed to trigger poster scan.');
+      }
+    } catch {
+      setMsgPosters('Error refreshing posters.');
+    } finally {
+      setRefreshingPosters(false);
+    }
+  };
 
   const handleBrowseFolder = async () => {
     try {
@@ -286,6 +305,8 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
             {msgFtp && <p style={{ fontSize: '0.82rem', color: 'var(--accent-emerald)' }}>{msgFtp}</p>}
           </form>
         </div>
+
+
 
       </div>
 

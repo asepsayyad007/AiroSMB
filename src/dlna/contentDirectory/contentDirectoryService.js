@@ -20,7 +20,7 @@ export class ContentDirectoryService {
         return buildSoapResponse(SERVICE_URN, 'GetSortCapabilities', '      <SortCaps>dc:title</SortCaps>');
 
       case 'GetSystemUpdateID':
-        return buildSoapResponse(SERVICE_URN, 'GetSystemUpdateID', '      <Id>1</Id>');
+        return buildSoapResponse(SERVICE_URN, 'GetSystemUpdateID', `      <Id>${mediaStore.systemUpdateId}</Id>`);
 
       default:
         return buildSoapResponse(SERVICE_URN, actionName, '      <Result></Result>');
@@ -33,7 +33,7 @@ export class ContentDirectoryService {
 
     if (!targetObj) {
       const emptyDidl = generateDidlXml([], baseUrl);
-      const inner = `      <Result>${escapeXmlContent(emptyDidl)}</Result>\n      <NumberReturned>0</NumberReturned>\n      <TotalMatches>0</TotalMatches>\n      <UpdateID>1</UpdateID>`;
+      const inner = `      <Result>${escapeXmlContent(emptyDidl)}</Result>\n      <NumberReturned>0</NumberReturned>\n      <TotalMatches>0</TotalMatches>\n      <UpdateID>${mediaStore.systemUpdateId}</UpdateID>`;
       return buildSoapResponse(SERVICE_URN, 'Browse', inner);
     }
 
@@ -57,7 +57,7 @@ export class ContentDirectoryService {
       `      <Result>${escapedDidl}</Result>\n` +
       `      <NumberReturned>${resultItems.length}</NumberReturned>\n` +
       `      <TotalMatches>${totalMatches}</TotalMatches>\n` +
-      `      <UpdateID>1</UpdateID>`;
+      `      <UpdateID>${mediaStore.systemUpdateId}</UpdateID>`;
 
     return buildSoapResponse(SERVICE_URN, 'Browse', innerXml);
   }

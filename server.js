@@ -56,9 +56,25 @@ const servicesState = {
   dlna: true
 };
 
-// Set up default initial directory (Default: User Videos folder)
-const defaultVideosDir = path.join(os.homedir(), 'Videos');
-let rootDirectory = fs.existsSync(defaultVideosDir) ? defaultVideosDir : os.homedir();
+// Persistent Config File Path for Shared Directory
+const rootConfigFile = path.join(process.cwd(), 'config', 'root.json');
+let rootDirectory = null;
+
+try {
+  if (fs.existsSync(rootConfigFile)) {
+    const savedConf = JSON.parse(fs.readFileSync(rootConfigFile, 'utf8'));
+    if (savedConf.rootDirectory && fs.existsSync(savedConf.rootDirectory)) {
+      rootDirectory = savedConf.rootDirectory;
+    }
+  }
+} catch (err) {
+  // Fallback to default
+}
+
+if (!rootDirectory) {
+  const defaultVideosDir = path.join(os.homedir(), 'Videos');
+  rootDirectory = fs.existsSync(defaultVideosDir) ? defaultVideosDir : os.homedir();
+}
 
 if (!fs.existsSync(rootDirectory)) {
   try {
@@ -218,15 +234,16 @@ app.get('/api/services/status', (req, res) => {
 // API: Toggle any server service ON or OFF live (http, ftp, dlna)
 app.post('/api/services/toggle', async (req, res) => {
   try {
-    const { service, enable } = req.body;
+    const { service, enable, state } = req.body;
     if (!['http', 'ftp', 'dlna'].includes(service)) {
       return res.status(400).json({ error: 'Invalid service name' });
     }
 
-    servicesState[service] = !!enable;
+    const targetEnable = enable !== undefined ? !!enable : (state !== undefined ? !!state : !servicesState[service]);
+    servicesState[service] = targetEnable;
 
     if (service === 'ftp') {
-      if (enable) {
+      if (targetEnable) {
         if (!ftpServerInstance || !ftpServerInstance.isRunning) {
           ftpServerInstance = new AiroFtpServer({ port: ftpPort, rootPath: rootDirectory });
           await ftpServerInstance.start();
@@ -237,7 +254,7 @@ app.post('/api/services/toggle', async (req, res) => {
     }
 
     if (service === 'dlna') {
-      if (enable) {
+      if (targetEnable) {
         const ips = getLocalIpAddresses();
         const primaryIp = ips.length > 0 ? ips[0].address : '127.0.0.1';
         ssdpServer.start(primaryIp, PORT);
@@ -249,7 +266,8 @@ app.post('/api/services/toggle', async (req, res) => {
     res.json({
       success: true,
       service,
-      enabled: servicesState[service]
+      enabled: servicesState[service],
+      services: { ...servicesState }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -531,17 +549,67 @@ app.get('/api/network/shortcut-directories', (req, res) => {
   }
 });
 
-// API: Change / Update Root Directory
+// API: Change / Update Root Directory (Instantly Synchronized Across HTTP, DLNA & FTP)
 app.post('/api/network/set-root', async (req, res) => {
-  const { newPath } = req.body;
-  if (newPath && fs.existsSync(newPath) && fs.statSync(newPath).isDirectory()) {
-    rootDirectory = path.resolve(newPath);
+  let { newPath } = req.body;
+  if (!newPath) return res.status(400).json({ error: 'No path provided' });
+
+  newPath = path.resolve(newPath.trim());
+  if (fs.existsSync(newPath) && fs.statSync(newPath).isDirectory()) {
+    rootDirectory = newPath;
+
+    // Save to persistent config so folder choice persists across app reboots
+    try {
+      fs.writeFileSync(rootConfigFile, JSON.stringify({ rootDirectory }, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('[Root Config Write Notice]', err.message);
+    }
+
+    // 1. Force DLNA MediaStore to rescan new root directory instantly
+    mediaStore.isScanning = false;
     await mediaStore.scanMedia(rootDirectory);
-    console.log(`[AiroShare] Root directory updated to: ${rootDirectory}`);
+
+    // 2. Restart FTP Server with new root directory instantly
+    if (ftpServerInstance && servicesState.ftp) {
+      try {
+        await ftpServerInstance.stop();
+        ftpServerInstance = new AiroFtpServer({ port: ftpPort, rootPath: rootDirectory });
+        await ftpServerInstance.start();
+        console.log(`[AiroShare FTP] Root directory updated & server restarted on port ${ftpPort}`);
+      } catch (err) {
+        console.warn('[AiroShare FTP Restart Notice]', err.message);
+      }
+    } else if (!ftpServerInstance && servicesState.ftp) {
+      try {
+        ftpServerInstance = new AiroFtpServer({ port: ftpPort, rootPath: rootDirectory });
+        await ftpServerInstance.start();
+      } catch (err) {
+        console.warn('[AiroShare FTP Start Notice]', err.message);
+      }
+    }
+
+    // 3. Re-announce DLNA SSDP location for instant network discovery refresh
+    if (ssdpServer && servicesState.dlna) {
+      try {
+        const ips = getLocalIpAddresses();
+        const primaryIp = ips.length > 0 ? ips[0].address : '127.0.0.1';
+        if (ssdpServer.isRunning) {
+          ssdpServer.notifyUpdate(primaryIp, PORT);
+        } else {
+          ssdpServer.start(primaryIp, PORT);
+        }
+      } catch (err) {
+        console.warn('[DLNA SSDP Re-announce Notice]', err.message);
+      }
+    }
+
+    console.log(`[AiroShare] Root directory updated & synchronized instantly: ${rootDirectory}`);
     return res.json({ success: true, rootDirectory });
   }
   res.status(400).json({ error: 'Invalid directory path provided' });
 });
+
+
 
 // API: Browse Directory & Files (Enforcing Strict Shared Root Boundary)
 app.get('/api/files/browse', (req, res) => {
@@ -590,8 +658,14 @@ app.get('/api/files/browse', (req, res) => {
           const category = getFileCategory(mimeType, item.name);
           const ext = path.extname(item.name).toLowerCase();
 
+          const cleaned = cleanMediaName(item.name);
+          let displayName = cleaned.title || item.name;
+          if (cleaned.year) displayName += ` (${cleaned.year})`;
+
           files.push({
             name: item.name,
+            displayName,
+            quality: cleaned.quality || null,
             path: fullItemPath,
             size: itemStat.size,
             modified: itemStat.mtime,
@@ -603,7 +677,7 @@ app.get('/api/files/browse', (req, res) => {
           });
         }
       } catch (e) {
-        // Ignore unreadable individual files/folders
+        console.error('BROWSE ITEM ERROR:', item.name, e);
       }
     }
 
@@ -633,9 +707,74 @@ app.get('/api/files/browse', (req, res) => {
 });
 
 import handleMediaStream from './src/dlna/utils/streamHandler.js';
+import generateLocalThumbnail, { getCachedThumbnailPath } from './src/dlna/utils/localThumbnailEngine.js';
+import { cleanMediaName } from './src/dlna/utils/posterFetcher.js';
 
 // API: Stream File with HTTP 206 Partial Content (Gigabit & DLNA Optimized)
 app.get('/api/files/stream', handleMediaStream);
+
+// API: Local Video Thumbnail — 100% offline native video frame thumbnail or local sidecar cover art
+app.get('/api/thumbnail', async (req, res) => {
+  try {
+    let filePath = req.query.path ? decodeURIComponent(req.query.path) : null;
+    const category = req.query.category || 'video';
+
+    if (filePath) {
+      // Strip any trailing query parameters or XML entity artifacts
+      filePath = filePath.replace(/[&?].*$/, '').trim();
+
+      // 1. Check existing cache
+      let cachedPath = getCachedThumbnailPath(filePath);
+
+      // 2. Generate on-demand if not cached yet
+      if (!cachedPath) {
+        cachedPath = await generateLocalThumbnail(filePath);
+      }
+
+      if (cachedPath && fs.existsSync(cachedPath)) {
+        const ext = path.extname(cachedPath).toLowerCase();
+        const contentType = ext === '.png' ? 'image/png' : 'image/jpeg';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.sendFile(path.resolve(cachedPath));
+      }
+    }
+
+    // Fallback: serve a minimal inline SVG icon based on media category
+    const svgIcons = {
+      video: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect width="120" height="80" rx="8" fill="#1a1f2e"/><polygon points="44,24 44,56 80,40" fill="#FF5D0B" opacity="0.85"/><text x="60" y="72" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui">VIDEO</text></svg>`,
+      audio: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect width="120" height="80" rx="8" fill="#1a1f2e"/><circle cx="60" cy="36" r="18" fill="none" stroke="#FF5D0B" stroke-width="3" opacity="0.85"/><circle cx="60" cy="36" r="6" fill="#FF5D0B" opacity="0.85"/><text x="60" y="72" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui">AUDIO</text></svg>`,
+      image: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect width="120" height="80" rx="8" fill="#1a1f2e"/><rect x="24" y="20" width="72" height="40" rx="4" fill="none" stroke="#FF5D0B" stroke-width="2" opacity="0.85"/><circle cx="42" cy="33" r="5" fill="#FF5D0B" opacity="0.85"/><polygon points="24,56 56,36 80,52 96,40 96,60 24,60" fill="#FF5D0B" opacity="0.3"/><text x="60" y="74" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui">IMAGE</text></svg>`,
+      default: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect width="120" height="80" rx="8" fill="#1a1f2e"/><rect x="36" y="18" width="48" height="44" rx="4" fill="none" stroke="#FF5D0B" stroke-width="2" opacity="0.85"/><line x1="44" y1="32" x2="76" y2="32" stroke="#64748b" stroke-width="1.5"/><line x1="44" y1="40" x2="76" y2="40" stroke="#64748b" stroke-width="1.5"/><line x1="44" y1="48" x2="64" y2="48" stroke="#64748b" stroke-width="1.5"/><text x="60" y="74" text-anchor="middle" fill="#64748b" font-size="9" font-family="system-ui">FILE</text></svg>`
+    };
+    const svg = svgIcons[category] || svgIcons.default;
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.send(svg);
+  } catch (err) {
+    res.status(500).send('Error serving thumbnail');
+  }
+});
+
+// API: Force re-scan & re-generate local video thumbnails (POST)
+app.post('/api/thumbnails/refresh', async (req, res) => {
+  try {
+    await mediaStore.refreshLocalThumbnails();
+    res.json({ success: true, message: 'Local video thumbnail extraction complete' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Backwards compatibility alias for /api/posters/refresh
+app.post('/api/posters/refresh', async (req, res) => {
+  try {
+    await mediaStore.refreshLocalThumbnails();
+    res.json({ success: true, message: 'Local video thumbnail extraction complete' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // API: Direct File Download
 app.get('/api/files/download', (req, res) => {
@@ -732,26 +871,53 @@ app.get('*', (req, res) => {
   }
 });
 
-app.listen(PORT, async () => {
-  console.log(`\n==================================================`);
-  console.log(`AiroShare Home Server running on port ${PORT}`);
-  console.log(`Local access: http://localhost:${PORT}`);
-  const ips = getLocalIpAddresses();
-  const primaryIp = ips.length > 0 ? ips[0].address : '127.0.0.1';
+function startListening(targetPort) {
+  const instance = app.listen(targetPort, '0.0.0.0', async () => {
+    if (process.send) {
+      process.send({ type: 'PORT_INITIALIZED', port: targetPort });
+    }
+    try {
+      fs.writeFileSync(
+        path.join(process.cwd(), 'config', 'port.json'), 
+        JSON.stringify({ port: targetPort }, null, 2), 
+        'utf8'
+      );
+    } catch (e) {}
 
-  ips.forEach(ip => {
-    console.log(`LAN Network stream: http://${ip.address}:${PORT}`);
+    console.log(`\n==================================================`);
+    console.log(`AiroShare Home Server running on port ${targetPort}`);
+    console.log(`Local access: http://localhost:${targetPort}`);
+    const ips = getLocalIpAddresses();
+    const primaryIp = ips.length > 0 ? ips[0].address : '127.0.0.1';
+
+    ips.forEach(ip => {
+      console.log(`LAN Network stream: http://${ip.address}:${targetPort}`);
+    });
+    console.log(`Hostname access:   http://${os.hostname().toLowerCase()}:${targetPort}`);
+    console.log(`mDNS access:       http://${os.hostname().toLowerCase()}.local:${targetPort}`);
+
+    try {
+      await mediaStore.scanMedia(rootDirectory);
+      ssdpServer.start(primaryIp, targetPort);
+      console.log(`UPnP DLNA AV Server Active at http://${primaryIp}:${targetPort}/dlna/description.xml`);
+    } catch (err) {
+      console.warn('[DLNA Startup Notice]', err.message);
+    }
+
+    console.log(`==================================================\n`);
   });
-  console.log(`Hostname access:   http://${os.hostname().toLowerCase()}:${PORT}`);
-  console.log(`mDNS access:       http://${os.hostname().toLowerCase()}.local:${PORT}`);
 
-  try {
-    await mediaStore.scanMedia(rootDirectory);
-    ssdpServer.start(primaryIp, PORT);
-    console.log(`UPnP DLNA AV Server Active at http://${primaryIp}:${PORT}/dlna/description.xml`);
-  } catch (err) {
-    console.warn('[DLNA Startup Notice]', err.message);
-  }
+  instance.on('error', async (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[AiroShare Port Notice] Port ${targetPort} busy, binding to alternate free port...`);
+      const freePort = await findFreePort(targetPort + 1);
+      startListening(freePort);
+    } else {
+      console.error('[AiroShare Server Error]', err);
+    }
+  });
 
-  console.log(`==================================================\n`);
-});
+  return instance;
+}
+
+startListening(PORT);

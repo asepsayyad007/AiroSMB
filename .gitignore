@@ -4,4 +4,6 @@ dist-electron/
 .DS_Store
 *.log
 config/port.json
+config/root.json
+
 
