@@ -14,14 +14,18 @@ let backendPort = 9900;
 
 // 1. Start backend Express server inside a child process
 function startServer(port) {
-  const serverPath = path.join(__dirname, 'server.js');
+  let serverPath = path.join(__dirname, 'server.js');
+  if (app.isPackaged) {
+    serverPath = serverPath.replace('app.asar', 'app.asar.unpacked');
+  }
   console.log(`[AiroShare Electron] Launching Express server child process: ${serverPath}`);
   
   serverProcess = fork(serverPath, [], {
     env: { 
       ...process.env, 
       PORT: port.toString(),
-      NODE_ENV: app.isPackaged ? 'production' : 'development'
+      NODE_ENV: app.isPackaged ? 'production' : 'development',
+      APP_PATH: app.getAppPath()
     },
     silent: false // pipes stdout/stderr to Electron console
   });
@@ -177,7 +181,10 @@ function createWindow(port) {
   });
 
   // Load loading screen immediately to show visual progress while server boots
-  mainWindow.loadFile(path.join(__dirname, 'public', 'loading.html'));
+  const loadingPath = app.isPackaged 
+    ? path.join(__dirname, 'dist', 'loading.html')
+    : path.join(__dirname, 'public', 'loading.html');
+  mainWindow.loadFile(loadingPath);
 
   const getActivePort = () => backendPort || port;
   console.log(`[AiroShare Electron] Waiting for local Express server on port ${getActivePort()} to boot...`);

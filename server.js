@@ -36,12 +36,14 @@ const PORT = await findFreePort(PREFERRED_PORT);
 const PREFERRED_FTP_PORT = parseInt(process.env.FTP_PORT || '2121', 10);
 const ftpPort = await findFreePort(PREFERRED_FTP_PORT);
 
-const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+const APP_PATH = process.env.APP_PATH || process.cwd();
+
+const pkg = JSON.parse(fs.readFileSync(path.join(APP_PATH, 'package.json'), 'utf8'));
 const VERSION = pkg.version;
 
 try {
   fs.writeFileSync(
-    path.join(process.cwd(), 'config', 'port.json'), 
+    path.join(APP_PATH, 'config', 'port.json'), 
     JSON.stringify({ port: PORT }, null, 2), 
     'utf8'
   );
@@ -57,7 +59,7 @@ const servicesState = {
 };
 
 // Persistent Config File Path for Shared Directory
-const rootConfigFile = path.join(process.cwd(), 'config', 'root.json');
+const rootConfigFile = path.join(APP_PATH, 'config', 'root.json');
 let rootDirectory = null;
 
 try {
@@ -109,7 +111,7 @@ app.get('/icon-:size.png', (req, res) => {
 });
 
 // Serve static frontend build if available
-const distPath = path.join(process.cwd(), 'dist');
+const distPath = path.join(APP_PATH, 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
 }
@@ -878,7 +880,7 @@ function startListening(targetPort) {
     }
     try {
       fs.writeFileSync(
-        path.join(process.cwd(), 'config', 'port.json'), 
+        path.join(APP_PATH, 'config', 'port.json'), 
         JSON.stringify({ port: targetPort }, null, 2), 
         'utf8'
       );

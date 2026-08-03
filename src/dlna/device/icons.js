@@ -7,7 +7,8 @@ const pngBuffer = Buffer.from(base64Png, 'base64');
 
 export function getDeviceIcon(size) {
   try {
-    const iconPath = path.join(process.cwd(), 'public', 'AiroShare.png');
+    const appPath = process.env.APP_PATH || process.cwd();
+    const iconPath = path.join(appPath, 'public', 'AiroShare.png');
     if (fs.existsSync(iconPath)) {
       return fs.readFileSync(iconPath);
     }
