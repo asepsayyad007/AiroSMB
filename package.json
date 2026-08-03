@@ -71,12 +71,6 @@
       "package.json"
     ],
     "asar": true,
-    "asarUnpack": [
-      "server.js",
-      "ftpServer.js",
-      "config/dlna.js",
-      "src/dlna/**/*",
-      "src/utils/**/*"
-    ]
+    "asarUnpack": []
   }
 }

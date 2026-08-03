@@ -14,10 +14,7 @@ let backendPort = 9900;
 
 // 1. Start backend Express server inside a child process
 function startServer(port) {
-  let serverPath = path.join(__dirname, 'server.js');
-  if (app.isPackaged) {
-    serverPath = serverPath.replace('app.asar', 'app.asar.unpacked');
-  }
+  const serverPath = path.join(__dirname, 'server.js');
   console.log(`[AiroShare Electron] Launching Express server child process: ${serverPath}`);
   
   serverProcess = fork(serverPath, [], {
@@ -25,7 +22,8 @@ function startServer(port) {
       ...process.env, 
       PORT: port.toString(),
       NODE_ENV: app.isPackaged ? 'production' : 'development',
-      APP_PATH: app.getAppPath()
+      APP_PATH: app.getAppPath(),
+      USER_DATA_PATH: app.getPath('userData')
     },
     silent: false // pipes stdout/stderr to Electron console
   });

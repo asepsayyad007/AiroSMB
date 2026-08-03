@@ -41,14 +41,16 @@ const APP_PATH = process.env.APP_PATH || process.cwd();
 const pkg = JSON.parse(fs.readFileSync(path.join(APP_PATH, 'package.json'), 'utf8'));
 const VERSION = pkg.version;
 
-try {
-  fs.writeFileSync(
-    path.join(APP_PATH, 'config', 'port.json'), 
-    JSON.stringify({ port: PORT }, null, 2), 
-    'utf8'
-  );
-} catch (err) {
-  // Ignore
+if (!process.env.USER_DATA_PATH) {
+  try {
+    fs.writeFileSync(
+      path.join(APP_PATH, 'config', 'port.json'), 
+      JSON.stringify({ port: PORT }, null, 2), 
+      'utf8'
+    );
+  } catch (err) {
+    // Ignore
+  }
 }
 
 // Service Toggles State (3 Active Services)
@@ -58,8 +60,10 @@ const servicesState = {
   dlna: true
 };
 
-// Persistent Config File Path for Shared Directory
-const rootConfigFile = path.join(APP_PATH, 'config', 'root.json');
+// Persistent Config File Path for Shared Directory (saved in writable user data directory in production)
+const rootConfigFile = process.env.USER_DATA_PATH
+  ? path.join(process.env.USER_DATA_PATH, 'root.json')
+  : path.join(APP_PATH, 'config', 'root.json');
 let rootDirectory = null;
 
 try {
@@ -878,13 +882,15 @@ function startListening(targetPort) {
     if (process.send) {
       process.send({ type: 'PORT_INITIALIZED', port: targetPort });
     }
-    try {
-      fs.writeFileSync(
-        path.join(APP_PATH, 'config', 'port.json'), 
-        JSON.stringify({ port: targetPort }, null, 2), 
-        'utf8'
-      );
-    } catch (e) {}
+    if (!process.env.USER_DATA_PATH) {
+      try {
+        fs.writeFileSync(
+          path.join(APP_PATH, 'config', 'port.json'), 
+          JSON.stringify({ port: targetPort }, null, 2), 
+          'utf8'
+        );
+      } catch (e) {}
+    }
 
     console.log(`\n==================================================`);
     console.log(`AiroShare Home Server running on port ${targetPort}`);
