@@ -11,6 +11,7 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
   const [ftpPortInput, setFtpPortInput] = useState(2121);
   const [directoriesInfo, setDirectoriesInfo] = useState({ shortcuts: [], drives: [] });
   const [adminPin, setAdminPin] = useState('');
+  const [accessMode, setAccessMode] = useState('open'); // 'open' or 'pin'
   const [blockedClients, setBlockedClients] = useState([]);
   
   // UI feedback states
@@ -57,7 +58,12 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
     try {
       const res = await fetch('/api/security/status');
       const data = await res.json();
-      if (res.ok && data.hasPin) setAdminPin('********');
+      if (res.ok && data.hasPin) {
+        setAdminPin('********');
+        setAccessMode('pin');
+      } else {
+        setAccessMode('open');
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -134,10 +140,15 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
       const res = await fetch('/api/security/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: adminPin === '********' ? '' : adminPin })
+        body: JSON.stringify({ pin: accessMode === 'open' ? '' : (adminPin === '********' ? '' : adminPin) })
       });
       if (res.ok) {
-        setMsgPin('Admin PIN updated successfully.');
+        if (accessMode === 'open') {
+          setMsgPin('Access mode set to Open.');
+          setAdminPin('');
+        } else {
+          setMsgPin('Admin PIN updated successfully.');
+        }
       } else {
         setMsgPin(`Error saving PIN.`);
       }
@@ -339,28 +350,34 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
               </p>
               
               <form onSubmit={handleSavePin} className="pro-card" style={{ background: 'rgba(255,255,255,0.02)', padding: '24px' }}>
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                  <input 
-                    type="password" 
-                    placeholder="No PIN (Open Access)"
-                    value={adminPin} 
-                    onChange={(e) => setAdminPin(e.target.value)}
-                    className="pro-input"
-                    style={{ flex: 1, maxWidth: '300px' }}
-                  />
-                  {adminPin && adminPin !== '********' && (
-                    <button 
-                      type="button" 
-                      className="btn-pro-secondary" 
-                      onClick={() => { setAdminPin(''); handleSavePin({ preventDefault: () => {} }); }} 
-                    >
-                      Clear PIN
-                    </button>
-                  )}
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: accessMode === 'open' ? '#10b981' : 'var(--text-muted)' }}>
+                    <input type="radio" name="accessMode" value="open" checked={accessMode === 'open'} onChange={() => setAccessMode('open')} style={{ cursor: 'pointer' }} />
+                    <span style={{ fontWeight: 500 }}>Open Access</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: accessMode === 'pin' ? '#ef4444' : 'var(--text-muted)' }}>
+                    <input type="radio" name="accessMode" value="pin" checked={accessMode === 'pin'} onChange={() => setAccessMode('pin')} style={{ cursor: 'pointer' }} />
+                    <span style={{ fontWeight: 500 }}>PIN Protected</span>
+                  </label>
                 </div>
+
+                {accessMode === 'pin' && (
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                    <input 
+                      type="password" 
+                      placeholder="Enter Admin PIN"
+                      value={adminPin} 
+                      onChange={(e) => setAdminPin(e.target.value)}
+                      className="pro-input"
+                      style={{ flex: 1, maxWidth: '300px' }}
+                      required
+                    />
+                  </div>
+                )}
+                
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <button type="submit" className="btn-pro-primary" disabled={savingPin} style={{ background: '#ef4444' }}>
-                    {savingPin ? 'Saving...' : 'Set Admin PIN'}
+                  <button type="submit" className="btn-pro-primary" disabled={savingPin} style={{ background: accessMode === 'pin' ? '#ef4444' : '#10b981' }}>
+                    {savingPin ? 'Saving...' : (accessMode === 'open' ? 'Save Open Mode' : 'Set Admin PIN')}
                   </button>
                   {msgPin && <span style={{ fontSize: '0.85rem', color: msgPin.startsWith('Error') ? '#ef4444' : '#10b981' }}>{msgPin}</span>}
                 </div>

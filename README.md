@@ -6,7 +6,7 @@
 ### High-Performance Local Media Server & File Engine
 ##### Built by [Asep Sayyad](https://github.com/asepsayyad007)
 
-[![Version](https://img.shields.io/badge/Version-1.4.0-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
+[![Version](https://img.shields.io/badge/Version-1.3.9-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)](#technical-deep-dive)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge)](LICENSE)
 [![Stack](https://img.shields.io/badge/Stack-Node.js%20%7C%20React%20%7C%20Vite-brightgreen?style=for-the-badge&logo=node.js)](#)
@@ -35,7 +35,7 @@
 * **Live Service Controller**: Enable, disable, or adjust HTTP, FTP, and DLNA servers independently in real-time from the web dashboard.
 * **Strict Path Isolation**: Built-in directory traversal guard to secure and restrict file browsing strictly to shared folders.
 * **Mobile Companion Web App**: Scan the QR code to instantly manage engines, view files, and block clients remotely from your mobile device.
-* **QR & PIN Auth Security**: Dashboard APIs are protected by a configurable admin PIN with automatic local session handshakes.
+* **QR & PIN Auth Security**: Dashboard APIs are protected by a configurable admin PIN with automatic local session handshakes and persistent mobile login.
 * **Active Client Monitoring**: Real-time connected client tracker displaying active streaming bandwidth, device names, and client logs.
 * **VLC / Kodi Integration**: Auto-generated M3U playlist file (`/playlist.m3u`) and Plex JSON feed (`/api/plex/feed`) for instant playlist importing.
 * **Sunset Palette System**: Modern, dark-mode glassmorphic user interface styled with premium micro-interactions.

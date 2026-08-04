@@ -53,11 +53,32 @@ export default function MobileApp() {
         
         if (verifyData.success) {
           setAdminPin(urlPin);
+          localStorage.setItem('airoshareAdminPin', urlPin);
           setIsAuthenticated(true);
           setAuthChecked(true);
           // Remove pin from URL without reloading
           window.history.replaceState({}, document.title, window.location.pathname);
           return;
+        }
+      }
+
+      // Check LocalStorage PIN
+      const storedPin = localStorage.getItem('airoshareAdminPin');
+      if (storedPin) {
+        const verifyRes = await fetch('/api/security/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: storedPin })
+        });
+        const verifyData = await verifyRes.json();
+        
+        if (verifyData.success) {
+          setAdminPin(storedPin);
+          setIsAuthenticated(true);
+          setAuthChecked(true);
+          return;
+        } else {
+          localStorage.removeItem('airoshareAdminPin'); // Invalidated
         }
       }
 
@@ -88,6 +109,7 @@ export default function MobileApp() {
       const data = await res.json();
       if (data.success) {
         setAdminPin(pinInput);
+        localStorage.setItem('airoshareAdminPin', pinInput);
         setIsAuthenticated(true);
       } else {
         setPinError('Invalid PIN');
