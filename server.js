@@ -77,6 +77,17 @@ try {
   // Fallback to default
 }
 
+const securityConfigFile = process.env.USER_DATA_PATH
+  ? path.join(process.env.USER_DATA_PATH, 'security.json')
+  : path.join(APP_PATH, 'config', 'security.json');
+
+let securityConfig = { adminPin: null, hostRequired: false };
+try {
+  if (fs.existsSync(securityConfigFile)) {
+    securityConfig = JSON.parse(fs.readFileSync(securityConfigFile, 'utf8'));
+  }
+} catch (err) {}
+
 if (!rootDirectory) {
   const defaultVideosDir = path.join(os.homedir(), 'Videos');
   rootDirectory = fs.existsSync(defaultVideosDir) ? defaultVideosDir : os.homedir();
@@ -113,6 +124,23 @@ app.get('/icon-:size.png', (req, res) => {
   res.setHeader('Content-Type', 'image/png');
   res.send(getDeviceIcon(size));
 });
+
+// --- Security & Auth Middleware ---
+const blocklistFile = process.env.USER_DATA_PATH
+  ? path.join(process.env.USER_DATA_PATH, 'blocklist.json')
+  : path.join(APP_PATH, 'config', 'blocklist.json');
+clientTracker.loadBlocklist(blocklistFile);
+
+const adminAuth = (req, res, next) => {
+  if (!securityConfig.adminPin) return next();
+  const clientIp = req.ip || req.socket?.remoteAddress || '';
+  if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp.includes('localhost')) return next();
+  const providedPin = req.headers['x-admin-pin'];
+  if (providedPin !== securityConfig.adminPin) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid PIN' });
+  }
+  next();
+};
 
 // Serve static frontend build if available
 const distPath = path.join(APP_PATH, 'dist');
@@ -238,7 +266,7 @@ app.get('/api/services/status', (req, res) => {
 });
 
 // API: Toggle any server service ON or OFF live (http, ftp, dlna)
-app.post('/api/services/toggle', async (req, res) => {
+app.post('/api/services/toggle', adminAuth, async (req, res) => {
   try {
     const { service, enable, state } = req.body;
     if (!['http', 'ftp', 'dlna'].includes(service)) {
@@ -452,6 +480,49 @@ app.get('/dlna/device.xml', (req, res) => {
   res.redirect('/dlna/description.xml');
 });
 
+// API: Security & Blocklist
+app.get('/api/security/status', (req, res) => {
+  const clientIp = req.ip || req.socket?.remoteAddress || '';
+  const isLocalhost = clientIp === '::1' || clientIp === '127.0.0.1' || clientIp.includes('localhost');
+  res.json({ hasPin: !!securityConfig.adminPin, isLocalhost });
+});
+
+app.post('/api/security/verify', (req, res) => {
+  const { pin } = req.body;
+  if (!securityConfig.adminPin || pin === securityConfig.adminPin) {
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false, error: 'Invalid PIN' });
+  }
+});
+
+app.post('/api/security/config', (req, res) => {
+  const { pin } = req.body;
+  securityConfig.adminPin = pin;
+  try {
+    fs.writeFileSync(securityConfigFile, JSON.stringify(securityConfig, null, 2), 'utf8');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save config' });
+  }
+});
+
+app.get('/api/clients/blocked', adminAuth, (req, res) => {
+  res.json({ blocked: clientTracker.getBlockedClients() });
+});
+
+app.post('/api/clients/block', adminAuth, (req, res) => {
+  const { ip } = req.body;
+  if (ip) clientTracker.block(ip);
+  res.json({ success: true });
+});
+
+app.post('/api/clients/unblock', adminAuth, (req, res) => {
+  const { ip } = req.body;
+  if (ip) clientTracker.unblock(ip);
+  res.json({ success: true });
+});
+
 // API: Get Network Info & Storage Stats
 app.get('/api/network/info', async (req, res) => {
   try {
@@ -470,7 +541,12 @@ app.get('/api/network/info', async (req, res) => {
     const localDomainUrl = `http://${mdnsHost}:${PORT}`;
     const serverUrl = `http://${primaryIp}:${PORT}`;
 
-    const qrDataUrl = await QRCode.toDataURL(serverUrl, { margin: 1, width: 300 });
+    let mobileUrl = `${serverUrl}/mobile`;
+    if (securityConfig.adminPin) {
+      mobileUrl += `?pin=${encodeURIComponent(securityConfig.adminPin)}`;
+    }
+
+    const qrDataUrl = await QRCode.toDataURL(mobileUrl, { margin: 1, width: 300 });
 
     let storageInfo = { total: 0, free: 0, used: 0, percentUsed: 0 };
     try {
@@ -618,7 +694,7 @@ app.post('/api/network/set-root', async (req, res) => {
 
 
 // API: Browse Directory & Files (Enforcing Strict Shared Root Boundary)
-app.get('/api/files/browse', (req, res) => {
+app.get('/api/files/browse', adminAuth, (req, res) => {
   try {
     let targetPath = req.query.path ? decodeURIComponent(req.query.path) : rootDirectory;
     
@@ -796,7 +872,7 @@ app.get('/api/files/download', (req, res) => {
 });
 
 // API: File Upload
-app.post('/api/files/upload', upload.array('files'), async (req, res) => {
+app.post('/api/files/upload', adminAuth, upload.array('files'), async (req, res) => {
   try {
     const targetDir = req.query.path ? decodeURIComponent(req.query.path) : rootDirectory;
     await mediaStore.scanMedia(targetDir);

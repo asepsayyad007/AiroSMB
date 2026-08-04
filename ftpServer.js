@@ -1,6 +1,7 @@
 import FtpServer from 'ftp-srv';
 import path from 'path';
 import os from 'os';
+import clientTracker from './src/utils/clientTracker.js';
 
 class AiroFtpServer {
   constructor(options = {}) {
@@ -25,6 +26,11 @@ class AiroFtpServer {
         connection.on('error', (err) => {
           // Suppress non-critical FTP client directory read errors
         });
+        
+        if (connection.ip && clientTracker.isBlocked(connection.ip)) {
+          return reject(new Error('Access denied. You have been blocked by the admin.'));
+        }
+
         // Grant full access to rootPath without password
         return resolve({ root: this.rootPath });
       });

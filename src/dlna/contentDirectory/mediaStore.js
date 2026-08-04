@@ -158,15 +158,6 @@ class MediaStore {
               if (parentCont && !parentCont.childrenIds.includes(folderContainerId)) {
                 parentCont.childrenIds.push(folderContainerId);
               }
-
-              // Categorize TV series folders into 0/tvshows container
-              const isTvFolder = /\b(s\d{1,2}|season\s*\d{1,2}|series|tvshows?|episodes?)\b/i.test(entry.name);
-              if (isTvFolder) {
-                const tvContainer = this.containers.get('0/tvshows');
-                if (tvContainer && !tvContainer.childrenIds.includes(folderContainerId)) {
-                  tvContainer.childrenIds.push(folderContainerId);
-                }
-              }
             }
             scanDir(fullPath, folderContainerId);
           } else if (entry.isFile()) {
@@ -248,8 +239,23 @@ class MediaStore {
 
               if (isTvShow) {
                 itemObj.upnpClass = 'object.item.videoItem.musicVideoClip';
-                if (!this.containers.get('0/tvshows').childrenIds.includes(itemId)) {
-                  this.containers.get('0/tvshows').childrenIds.push(itemId);
+                
+                // Find top level folder under 0/all
+                let currentParentId = parentContainerId;
+                let topLevelFolderId = null;
+                while (currentParentId !== '0/all' && this.containers.has(currentParentId)) {
+                  topLevelFolderId = currentParentId;
+                  currentParentId = this.containers.get(currentParentId).parentId;
+                }
+                
+                if (topLevelFolderId) {
+                  if (!this.containers.get('0/tvshows').childrenIds.includes(topLevelFolderId)) {
+                    this.containers.get('0/tvshows').childrenIds.push(topLevelFolderId);
+                  }
+                } else {
+                  if (!this.containers.get('0/tvshows').childrenIds.includes(itemId)) {
+                    this.containers.get('0/tvshows').childrenIds.push(itemId);
+                  }
                 }
               } else {
                 if (!this.containers.get('0/movies').childrenIds.includes(itemId)) {

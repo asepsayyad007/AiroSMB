@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-08-04
+
+### Added
+- **Mobile Companion Web App**: Dedicated mobile-optimized dashboard accessible remotely for managing engines, tracking active clients, and browsing shared files.
+- **QR Code & PIN Authentication**: Added robust security layer to restrict dashboard access over LAN. PC dashboard now enforces PIN authentication (or QR code auto-auth for mobile) before granting access.
+- **PWA Apple Icons**: Configured Apple Touch Icons to allow the Mobile Companion Web App to behave as a native app when saved to the iOS homescreen.
+- **TV Series Auto-Sorting**: Improved media scanning logic to retain nested directory structures for TV series instead of flattening them into a massive unreadable list.
+
+### Changed
+- **PC Dashboard Redesign**: Complete overhaul of the PC dashboard UI with a sleek, dark-mode glassmorphic aesthetic and modern micro-animations.
+- **Removed Deprecated PC Upload**: Cleaned up the PC Dashboard file manager by removing the unnecessary upload feature since the host machine already has local access.
+- **Local Thumbnail Engine Fixes**: Fixed distorted video thumbnails in the mobile client by integrating the local thumbnail extraction engine with a fast, cached API endpoint.
+- **Security Middleware Restoration**: Re-implemented strict IP and route security policies to ensure active web client connections are actively authenticated and blocked IPs are dropped.
+
 ## [1.3.6] - 2026-08-03
 
 ### Fixed

@@ -288,15 +288,15 @@ export default function App() {
             <div style={{ marginBottom: '10px' }}>
               <AiroShareIcon size={44} />
             </div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Mobile Connection</h3>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '4px' }}>Mobile Admin App</h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-              Scan QR code using smartphone camera to open dashboard on Wi-Fi:
+              Scan QR code using smartphone camera to open the companion admin app on Wi-Fi:
             </p>
             <div style={{ background: '#fff', padding: '8px', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '12px' }}>
               <img src={networkInfo.qrDataUrl} alt="Pairing QR Code" style={{ width: '160px', height: '160px', display: 'block' }} />
             </div>
             <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem', color: 'var(--accent-orange)', marginBottom: '14px' }}>
-              {serverUrl}
+              {serverUrl}/mobile
             </p>
             <button className="btn-pro-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowTopQrModal(false)}>
               Close

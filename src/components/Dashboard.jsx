@@ -56,10 +56,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
   const [sharedFilesList, setSharedFilesList] = useState([]);
   const [copiedLink, setCopiedLink] = useState(false);
   
-  // Upload modal & player state
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedUploadFiles, setSelectedUploadFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
+  // upload state removed
   const [activeMediaFile, setActiveMediaFile] = useState(null);
 
   // Network variables (Physical LAN IP, zero 127.0.0.1 fallbacks)
@@ -248,31 +245,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
     }
   };
 
-  // Upload handler
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!selectedUploadFiles || selectedUploadFiles.length === 0) return;
-    try {
-      setUploading(true);
-      const formData = new FormData();
-      for (let i = 0; i < selectedUploadFiles.length; i++) {
-        formData.append('files', selectedUploadFiles[i]);
-      }
-      const res = await fetch(`/api/files/upload?path=${encodeURIComponent(currentPath)}`, {
-        method: 'POST',
-        body: formData
-      });
-      if (res.ok) {
-        setShowUploadModal(false);
-        setSelectedUploadFiles([]);
-        fetchDirectory(currentPath);
-      }
-    } catch (err) {
-      console.error('Upload error:', err);
-    } finally {
-      setUploading(false);
-    }
-  };
+  // Upload handler removed
 
   const getFileIcon = (category) => {
     switch (category) {
@@ -427,10 +400,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
             >
               <RefreshCw size={13} className={loadingFiles ? 'spin' : ''} />
               <span>Refresh</span>
-            </button>
-
-            <button className="btn-pro-primary" onClick={() => setShowUploadModal(true)} style={{ padding: '6px 12px' }}>
-              <Upload size={14} /> Upload
             </button>
 
           </div>
@@ -688,35 +657,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
         </div>
       )}
 
-      {/* Upload File Modal */}
-      {showUploadModal && (
-        <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '6px' }}>Upload File to PC</h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              Target Folder: <code style={{ color: 'var(--accent-orange)' }}>{currentPath}</code>
-            </p>
-
-            <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <input 
-                type="file" 
-                multiple 
-                onChange={(e) => setSelectedUploadFiles(e.target.files)}
-                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', padding: '12px', borderRadius: 'var(--radius-md)', color: 'var(--text-main)', fontSize: '0.85rem' }}
-              />
-
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
-                <button type="button" className="btn-pro-secondary" onClick={() => setShowUploadModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-pro-primary" disabled={uploading}>
-                  {uploading ? 'Uploading...' : 'Upload File'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Removed Upload File Modal */}
 
       {/* In-Browser Media Player Modal */}
       {activeMediaFile && (

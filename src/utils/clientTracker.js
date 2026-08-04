@@ -3,9 +3,63 @@
  * Tracks DLNA, HTTP, and FTP connected devices
  */
 
+import fs from 'fs';
+
 class ClientTracker {
   constructor() {
     this.clients = new Map(); // Key: client IP
+    this.blockedIps = new Set();
+    this.blocklistPath = null;
+  }
+
+  loadBlocklist(filePath) {
+    this.blocklistPath = filePath;
+    try {
+      if (fs.existsSync(filePath)) {
+        const list = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        if (Array.isArray(list)) {
+          this.blockedIps = new Set(list);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load blocklist:', e.message);
+    }
+  }
+
+  saveBlocklist() {
+    if (this.blocklistPath) {
+      try {
+        fs.writeFileSync(this.blocklistPath, JSON.stringify(Array.from(this.blockedIps), null, 2), 'utf8');
+      } catch (e) {
+        console.warn('Failed to save blocklist:', e.message);
+      }
+    }
+  }
+
+  isBlocked(ip) {
+    if (!ip) return false;
+    const cleanIp = ip.replace(/^.*:/, '');
+    return this.blockedIps.has(cleanIp);
+  }
+
+  block(ip) {
+    if (!ip) return;
+    const cleanIp = ip.replace(/^.*:/, '');
+    if (cleanIp === '127.0.0.1' || cleanIp === 'localhost' || cleanIp === '::1') return; // Protect localhost
+    this.blockedIps.add(cleanIp);
+    this.saveBlocklist();
+    this.clients.delete(cleanIp);
+  }
+
+  unblock(ip) {
+    if (!ip) return;
+    const cleanIp = ip.replace(/^.*:/, '');
+    this.blockedIps.delete(cleanIp);
+    this.saveBlocklist();
+  }
+
+  getBlockedClients() {
+    return Array.from(this.blockedIps);
   }
 
   /**
@@ -13,6 +67,7 @@ class ClientTracker {
    */
   logActivity({ ip, device = 'Generic Client', protocol = 'HTTP', activity = 'Active' }) {
     if (!ip || ip === '::1' || ip === '127.0.0.1' || ip === 'localhost') return;
+    if (this.isBlocked(ip)) return;
 
     // Clean IP address if formatted like ::ffff:192.168.1.19
     const cleanIp = ip.replace(/^.*:/, '');
