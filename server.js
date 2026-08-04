@@ -649,7 +649,7 @@ app.post('/api/network/set-root', async (req, res) => {
 
     // 1. Force DLNA MediaStore to rescan new root directory instantly
     mediaStore.isScanning = false;
-    await mediaStore.scanMedia(rootDirectory);
+    mediaStore.startWatcher(rootDirectory);
 
     // 2. Restart FTP Server with new root directory instantly
     if (ftpServerInstance && servicesState.ftp) {
@@ -875,7 +875,7 @@ app.get('/api/files/download', (req, res) => {
 app.post('/api/files/upload', adminAuth, upload.array('files'), async (req, res) => {
   try {
     const targetDir = req.query.path ? decodeURIComponent(req.query.path) : rootDirectory;
-    await mediaStore.scanMedia(targetDir);
+    mediaStore.startWatcher(targetDir);
     res.json({
       success: true,
       message: `Successfully uploaded ${req.files?.length || 0} file(s)`
@@ -981,7 +981,7 @@ function startListening(targetPort) {
     console.log(`mDNS access:       http://${os.hostname().toLowerCase()}.local:${targetPort}`);
 
     try {
-      await mediaStore.scanMedia(rootDirectory);
+      mediaStore.startWatcher(rootDirectory);
       ssdpServer.start(primaryIp, targetPort);
       console.log(`UPnP DLNA AV Server Active at http://${primaryIp}:${targetPort}/dlna/description.xml`);
     } catch (err) {

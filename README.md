@@ -15,7 +15,7 @@
 
 <br />
 
-<img src="public/App-profile.png" width="900" alt="AiroShare Dashboard Preview" />
+<img src="public/AiroShare-banner.png" width="900" alt="AiroShare Dashboard Preview" />
 
 <br />
 

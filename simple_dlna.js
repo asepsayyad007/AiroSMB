@@ -97,7 +97,7 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log('==================================================\n');
 
   // Scan media files
-  await mediaStore.scanMedia(mediaDir);
+  mediaStore.startWatcher(mediaDir);
 
   // Start SSDP broadcaster — use detected LAN IP
   ssdpServer.start(primaryIp, PORT);

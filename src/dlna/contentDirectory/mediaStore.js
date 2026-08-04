@@ -4,6 +4,7 @@ import mime from 'mime-types';
 import dlnaConfig from '../../../config/dlna.js';
 import probeMediaFile from '../utils/mediaProber.js';
 import { cleanMediaName } from '../utils/posterFetcher.js';
+import chokidar from 'chokidar';
 
 /**
  * Robust UPnP / DLNA MediaStore
@@ -17,6 +18,8 @@ class MediaStore {
     this.lastScanTime = null;
     this.isScanning = false;
     this.systemUpdateId = 1;
+    this.watcher = null;
+    this.scanTimeout = null;
 
     this.initContainers();
   }
@@ -108,6 +111,44 @@ class MediaStore {
 
     if (this.containers.has(id)) return id;
     return id;
+  }
+
+  startWatcher(targetDirectory = this.rootPath) {
+    if (this.watcher) {
+      this.watcher.close();
+    }
+    
+    this.rootPath = targetDirectory;
+    console.log(`[DLNA MediaStore] Starting live directory watcher on: ${this.rootPath}`);
+    
+    // Initial scan
+    this.scanMedia(this.rootPath);
+    
+    this.watcher = chokidar.watch(this.rootPath, {
+      ignored: /(^|[\/\\])\../, // ignore dotfiles
+      persistent: true,
+      ignoreInitial: true, // We already do an initial scan
+      awaitWriteFinish: {
+        stabilityThreshold: 2000,
+        pollInterval: 100
+      }
+    });
+
+    const triggerRescan = (event, path) => {
+      console.log(`[DLNA MediaStore] Detected ${event} at ${path}. Scheduling rebuild...`);
+      if (this.scanTimeout) clearTimeout(this.scanTimeout);
+      this.scanTimeout = setTimeout(() => {
+        console.log(`[DLNA MediaStore] Rebuilding media store after changes...`);
+        this.scanMedia(this.rootPath);
+      }, 5000); // 5 second debounce
+    };
+
+    this.watcher
+      .on('add', path => triggerRescan('file added', path))
+      .on('change', path => triggerRescan('file changed', path))
+      .on('unlink', path => triggerRescan('file removed', path))
+      .on('unlinkDir', path => triggerRescan('directory removed', path))
+      .on('error', error => console.error(`[DLNA MediaStore] Watcher error: ${error}`));
   }
 
   async scanMedia(targetDirectory = this.rootPath) {
