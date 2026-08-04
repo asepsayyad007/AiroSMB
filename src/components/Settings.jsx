@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, HardDrive, Tv, Wifi, Check, Folder, ChevronRight, Film, Lock, ShieldAlert, Ban, Info, Server } from 'lucide-react';
+import { Settings as SettingsIcon, HardDrive, Tv, Wifi, Check, Folder, ChevronRight, Film, Lock, ShieldAlert, Ban, Info, Server, MonitorPlay } from 'lucide-react';
 
 export default function Settings({ networkInfo, onRefreshNetwork }) {
   const isElectron = !!(window.electronAPI && window.electronAPI.isElectron);
@@ -13,6 +13,7 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
   const [adminPin, setAdminPin] = useState('');
   const [accessMode, setAccessMode] = useState('open'); // 'open' or 'pin'
   const [blockedClients, setBlockedClients] = useState([]);
+  const [dlnaConfig, setDlnaConfig] = useState({ useMaster: true, videos: '', photos: '', music: '' });
   
   // UI feedback states
   const [savingPath, setSavingPath] = useState(false);
@@ -21,6 +22,8 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
   const [msgPath, setMsgPath] = useState('');
   const [msgFtp, setMsgFtp] = useState('');
   const [msgPin, setMsgPin] = useState('');
+  const [savingDlna, setSavingDlna] = useState(false);
+  const [msgDlna, setMsgDlna] = useState('');
 
   // Initial Data Fetch
   useEffect(() => {
@@ -31,6 +34,7 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
     fetchShortcutDirs();
     fetchSecurityStatus();
     fetchBlockedClients();
+    fetchDlnaConfig();
   }, [isElectron]);
 
   useEffect(() => {
@@ -51,6 +55,14 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
       const res = await fetch('/api/network/shortcut-directories');
       const data = await res.json();
       if (res.ok) setDirectoriesInfo(data);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchDlnaConfig = async () => {
+    try {
+      const res = await fetch('/api/network/dlna-config');
+      const data = await res.json();
+      if (res.ok && data.dlnaLibraries) setDlnaConfig(data.dlnaLibraries);
     } catch (err) { console.error(err); }
   };
 
@@ -83,6 +95,38 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
       const selected = await window.electronAPI.selectFolder();
       if (selected) setSharedPath(selected);
     } catch (err) { console.error(err); }
+  };
+
+  const handleBrowseDlnaFolder = async (type) => {
+    try {
+      const selected = await window.electronAPI.selectFolder();
+      if (selected) {
+        setDlnaConfig(prev => ({ ...prev, [type]: selected }));
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSaveDlnaConfig = async (e) => {
+    if (e) e.preventDefault();
+    try {
+      setSavingDlna(true); setMsgDlna('');
+      const res = await fetch('/api/network/dlna-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newConfig: dlnaConfig })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMsgDlna('DLNA Config saved & applied instantly!');
+      } else {
+        setMsgDlna(data.error || 'Failed to save');
+      }
+    } catch (err) {
+      setMsgDlna('Error saving configuration');
+    } finally {
+      setSavingDlna(false);
+      setTimeout(() => setMsgDlna(''), 3000);
+    }
   };
 
   const handleSavePath = async (e) => {
@@ -305,6 +349,71 @@ export default function Settings({ networkInfo, onRefreshNetwork }) {
                   {msgPath && <span style={{ fontSize: '0.85rem', color: msgPath.startsWith('Error') ? '#ef4444' : '#10b981' }}>{msgPath}</span>}
                 </div>
               </form>
+            </div>
+
+            {/* DLNA Server Configuration */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <MonitorPlay size={22} color="var(--accent-blue)" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#fff', margin: 0 }}>DLNA Media Libraries</h3>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+                Configure which folders are indexed and streamed to your Smart TVs via UPnP/DLNA.
+              </p>
+              
+              <div className="pro-card" style={{ background: 'rgba(255,255,255,0.02)', padding: '24px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: '24px' }}>
+                  <input 
+                    type="checkbox"
+                    checked={dlnaConfig.useMaster}
+                    onChange={(e) => setDlnaConfig(prev => ({ ...prev, useMaster: e.target.checked }))}
+                    style={{ width: '20px', height: '20px', accentColor: 'var(--accent-orange)', cursor: 'pointer' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 500, color: '#fff' }}>Use Master Shared Directory</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Automatically index all media found inside the Root Shared Directory above.</div>
+                  </div>
+                </label>
+
+                {!dlnaConfig.useMaster && (
+                  <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '20px' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-dim)', marginBottom: '8px' }}>
+                      Select specific folders for your media libraries. Only these folders will be indexed for DLNA playback.
+                    </div>
+
+                    {[
+                      { key: 'videos', label: 'Videos Folder', placeholder: 'e.g., D:\\Movies' },
+                      { key: 'photos', label: 'Photos Folder', placeholder: 'e.g., C:\\Pictures' },
+                      { key: 'music', label: 'Music Folder', placeholder: 'e.g., E:\\Music' }
+                    ].map(lib => (
+                      <div key={lib.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '120px', fontSize: '0.9rem', color: 'var(--text-main)' }}>{lib.label}</div>
+                        <input 
+                          type="text" 
+                          value={dlnaConfig[lib.key] || ''} 
+                          onChange={(e) => setDlnaConfig(prev => ({ ...prev, [lib.key]: e.target.value }))}
+                          readOnly={isElectron}
+                          placeholder={lib.placeholder}
+                          className="pro-input"
+                          style={{ flex: 1, fontSize: '0.9rem', padding: '10px' }}
+                        />
+                        {isElectron && (
+                          <button type="button" className="btn-pro-secondary" onClick={() => handleBrowseDlnaFolder(lib.key)} style={{ padding: '0 16px' }}>
+                            Browse
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '24px' }}>
+                  <button type="button" className="btn-pro-primary" onClick={handleSaveDlnaConfig} disabled={savingDlna}>
+                    {savingDlna ? 'Applying...' : 'Save DLNA Settings'}
+                  </button>
+                  {msgDlna && <span style={{ fontSize: '0.85rem', color: msgDlna.startsWith('Error') ? '#ef4444' : '#10b981' }}>{msgDlna}</span>}
+                </div>
+              </div>
             </div>
 
             <div>

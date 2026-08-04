@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import mime from 'mime-types';
 import dlnaConfig from '../../../config/dlna.js';
-import probeMediaFile from '../utils/mediaProber.js';
+import probeMediaFile, { getQualityFromResolution } from '../utils/mediaProber.js';
 import { cleanMediaName } from '../utils/posterFetcher.js';
 import chokidar from 'chokidar';
 
@@ -17,6 +17,7 @@ class MediaStore {
     this.items = new Map();
     this.lastScanTime = null;
     this.isScanning = false;
+    this.scanPending = false;
     this.systemUpdateId = 1;
     this.watcher = null;
     this.scanTimeout = null;
@@ -113,18 +114,31 @@ class MediaStore {
     return id;
   }
 
-  startWatcher(targetDirectory = this.rootPath) {
+  startWatcher(targetDirectory = this.rootPath, dlnaConfig = null) {
     if (this.watcher) {
       this.watcher.close();
     }
     
     this.rootPath = targetDirectory;
-    console.log(`[DLNA MediaStore] Starting live directory watcher on: ${this.rootPath}`);
+    this.dlnaConfig = dlnaConfig || { useMaster: true };
     
     // Initial scan
-    this.scanMedia(this.rootPath);
+    this.scanMedia();
     
-    this.watcher = chokidar.watch(this.rootPath, {
+    let watchPaths = [this.rootPath];
+    if (!this.dlnaConfig.useMaster) {
+      watchPaths = [
+        this.dlnaConfig.videos,
+        this.dlnaConfig.photos,
+        this.dlnaConfig.music
+      ].filter(p => p && fs.existsSync(p));
+    }
+
+    if (watchPaths.length === 0) return;
+
+    console.log(`[DLNA MediaStore] Starting live directory watcher on:`, watchPaths);
+    
+    this.watcher = chokidar.watch(watchPaths, {
       ignored: /(^|[\/\\])\../, // ignore dotfiles
       persistent: true,
       ignoreInitial: true, // We already do an initial scan
@@ -151,18 +165,15 @@ class MediaStore {
       .on('error', error => console.error(`[DLNA MediaStore] Watcher error: ${error}`));
   }
 
-  async scanMedia(targetDirectory = this.rootPath) {
-    if (this.isScanning) return;
+  async scanMedia() {
+    if (this.isScanning) {
+      this.scanPending = true;
+      return;
+    }
     this.isScanning = true;
+    this.scanPending = false;
 
     try {
-      this.rootPath = targetDirectory || this.rootPath;
-      if (!fs.existsSync(this.rootPath)) {
-        console.warn(`[DLNA MediaStore] Directory does not exist: ${this.rootPath}`);
-        this.isScanning = false;
-        return;
-      }
-
       this.systemUpdateId++;
       this.initContainers();
       this.items.clear();
@@ -261,6 +272,11 @@ class MediaStore {
               if (meta.bitrate) itemObj.bitrate = meta.bitrate;
               if (meta.sampleFrequency) itemObj.sampleFrequency = meta.sampleFrequency;
               if (meta.nrAudioChannels) itemObj.nrAudioChannels = meta.nrAudioChannels;
+              
+              if (!itemObj.mediaQuality && meta.width && meta.height) {
+                 itemObj.mediaQuality = getQualityFromResolution(meta.width, meta.height);
+                 if (itemObj.mediaQuality) displayTitle += ` [${itemObj.mediaQuality}]`;
+              }
             } catch {
               // Ignore probe failures — metadata is optional
             }
@@ -316,7 +332,17 @@ class MediaStore {
         }
       };
 
-      scanDir(this.rootPath, '0/all');
+      if (this.dlnaConfig && !this.dlnaConfig.useMaster) {
+        if (this.dlnaConfig.videos && fs.existsSync(this.dlnaConfig.videos)) scanDir(this.dlnaConfig.videos, '0/all');
+        if (this.dlnaConfig.photos && fs.existsSync(this.dlnaConfig.photos)) scanDir(this.dlnaConfig.photos, '0/all');
+        if (this.dlnaConfig.music && fs.existsSync(this.dlnaConfig.music)) scanDir(this.dlnaConfig.music, '0/all');
+      } else {
+        if (fs.existsSync(this.rootPath)) {
+          scanDir(this.rootPath, '0/all');
+        } else {
+          console.warn(`[DLNA MediaStore] Master directory does not exist: ${this.rootPath}`);
+        }
+      }
 
       for (const [cId, container] of this.containers.entries()) {
         container.childCount = container.childrenIds.length;
@@ -335,6 +361,10 @@ class MediaStore {
       console.error('[DLNA MediaStore Scan Error]', err);
     } finally {
       this.isScanning = false;
+      if (this.scanPending) {
+        this.scanPending = false;
+        this.scanMedia();
+      }
     }
   }
 

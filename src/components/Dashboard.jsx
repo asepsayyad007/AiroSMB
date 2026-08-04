@@ -22,6 +22,9 @@ const detectBrowserHostname = () => {
 };
 
 export default function Dashboard({ networkInfo, onRefreshNetwork, services: propServices, onToggleService }) {
+  const [port, setPort] = useState(networkInfo?.port || 3000);
+  const [dlnaConfig, setDlnaConfig] = useState(null);
+
   // Shared Directory Config State
   const [customPath, setCustomPath] = useState(networkInfo?.rootDirectory || '');
   const [savingPath, setSavingPath] = useState(false);
@@ -61,7 +64,6 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
 
   // Network variables (Physical LAN IP, zero 127.0.0.1 fallbacks)
   const primaryIp = networkInfo?.primaryIp || detectBrowserIp();
-  const port = networkInfo?.port || window.location.port || 3000;
   const ftpPort = networkInfo?.ftpPort || 2121;
   const hostname = networkInfo?.hostname || detectBrowserHostname();
   const connectionType = networkInfo?.connectionType || 'Wi-Fi / Ethernet';
@@ -125,9 +127,27 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
   };
 
   useEffect(() => {
+    if (networkInfo?.rootDirectory && customPath === '') {
+      setCustomPath(networkInfo.rootDirectory);
+    }
+    if (networkInfo?.rootDirectory) {
+      fetchDirectory(networkInfo.rootDirectory);
+    }
+    
+    // Poll services status periodically
     fetchServicesStatus();
-    fetchDirectory(networkInfo?.rootDirectory || '');
-    if (networkInfo?.rootDirectory) setCustomPath(networkInfo.rootDirectory);
+    const serviceInterval = setInterval(fetchServicesStatus, 5000);
+
+    const fetchDlnaConfig = async () => {
+      try {
+        const res = await fetch('/api/network/dlna-config');
+        const data = await res.json();
+        if (res.ok && data.dlnaLibraries) setDlnaConfig(data.dlnaLibraries);
+      } catch (err) { console.error(err); }
+    };
+    fetchDlnaConfig();
+
+    return () => clearInterval(serviceInterval);
   }, [networkInfo]);
 
   // Handle Updating Shared Root Directory
@@ -311,6 +331,11 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
             <span style={{ fontSize: '0.82rem', color: pathMessage.startsWith('Directory') ? 'var(--accent-emerald)' : '#f87171', fontWeight: 500 }}>
               {pathMessage}
             </span>
+          )}
+          {dlnaConfig && !dlnaConfig.useMaster && (
+            <div style={{ width: '100%', marginTop: '4px', fontSize: '0.8rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Tv size={14} /> DLNA is using dedicated custom libraries instead of the master shared folder.
+            </div>
           )}
         </div>
 

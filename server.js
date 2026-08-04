@@ -65,12 +65,16 @@ const rootConfigFile = process.env.USER_DATA_PATH
   ? path.join(process.env.USER_DATA_PATH, 'root.json')
   : path.join(APP_PATH, 'config', 'root.json');
 let rootDirectory = null;
+let dlnaLibraries = { useMaster: true, videos: '', photos: '', music: '' };
 
 try {
   if (fs.existsSync(rootConfigFile)) {
     const savedConf = JSON.parse(fs.readFileSync(rootConfigFile, 'utf8'));
     if (savedConf.rootDirectory && fs.existsSync(savedConf.rootDirectory)) {
       rootDirectory = savedConf.rootDirectory;
+    }
+    if (savedConf.dlnaLibraries) {
+      dlnaLibraries = { ...dlnaLibraries, ...savedConf.dlnaLibraries };
     }
   }
 } catch (err) {
@@ -642,14 +646,14 @@ app.post('/api/network/set-root', async (req, res) => {
 
     // Save to persistent config so folder choice persists across app reboots
     try {
-      fs.writeFileSync(rootConfigFile, JSON.stringify({ rootDirectory }, null, 2), 'utf8');
+      fs.writeFileSync(rootConfigFile, JSON.stringify({ rootDirectory, dlnaLibraries }, null, 2), 'utf8');
     } catch (err) {
       console.warn('[Root Config Write Notice]', err.message);
     }
 
     // 1. Force DLNA MediaStore to rescan new root directory instantly
     mediaStore.isScanning = false;
-    mediaStore.startWatcher(rootDirectory);
+    mediaStore.startWatcher(rootDirectory, dlnaLibraries);
 
     // 2. Restart FTP Server with new root directory instantly
     if (ftpServerInstance && servicesState.ftp) {
@@ -689,6 +693,30 @@ app.post('/api/network/set-root', async (req, res) => {
     return res.json({ success: true, rootDirectory });
   }
   res.status(400).json({ error: 'Invalid directory path provided' });
+});
+
+// API: Get DLNA configuration
+app.get('/api/network/dlna-config', adminAuth, (req, res) => {
+  res.json({ dlnaLibraries });
+});
+
+// API: Update DLNA configuration
+app.post('/api/network/dlna-config', adminAuth, (req, res) => {
+  const { newConfig } = req.body;
+  if (!newConfig) return res.status(400).json({ error: 'No config provided' });
+  
+  dlnaLibraries = { ...dlnaLibraries, ...newConfig };
+  
+  try {
+    fs.writeFileSync(rootConfigFile, JSON.stringify({ rootDirectory, dlnaLibraries }, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('[Root Config Write Notice]', err.message);
+  }
+  
+  mediaStore.isScanning = false;
+  mediaStore.startWatcher(rootDirectory, dlnaLibraries);
+  
+  res.json({ success: true, dlnaLibraries });
 });
 
 
@@ -741,13 +769,24 @@ app.get('/api/files/browse', adminAuth, (req, res) => {
           const ext = path.extname(item.name).toLowerCase();
 
           const cleaned = cleanMediaName(item.name);
+          let quality = cleaned.quality || null;
+          
+          if (!quality && category === 'video') {
+             try {
+                const meta = probeMediaFile(fullItemPath);
+                if (meta.width && meta.height) {
+                   quality = getQualityFromResolution(meta.width, meta.height);
+                }
+             } catch (err) {}
+          }
+
           let displayName = cleaned.title || item.name;
           if (cleaned.year) displayName += ` (${cleaned.year})`;
 
           files.push({
             name: item.name,
             displayName,
-            quality: cleaned.quality || null,
+            quality,
             path: fullItemPath,
             size: itemStat.size,
             modified: itemStat.mtime,
@@ -791,6 +830,7 @@ app.get('/api/files/browse', adminAuth, (req, res) => {
 import handleMediaStream from './src/dlna/utils/streamHandler.js';
 import generateLocalThumbnail, { getCachedThumbnailPath } from './src/dlna/utils/localThumbnailEngine.js';
 import { cleanMediaName } from './src/dlna/utils/posterFetcher.js';
+import probeMediaFile, { getQualityFromResolution } from './src/dlna/utils/mediaProber.js';
 
 // API: Stream File with HTTP 206 Partial Content (Gigabit & DLNA Optimized)
 app.get('/api/files/stream', handleMediaStream);
@@ -875,7 +915,7 @@ app.get('/api/files/download', (req, res) => {
 app.post('/api/files/upload', adminAuth, upload.array('files'), async (req, res) => {
   try {
     const targetDir = req.query.path ? decodeURIComponent(req.query.path) : rootDirectory;
-    mediaStore.startWatcher(targetDir);
+    // Chokidar will automatically detect the new file and trigger a rebuild
     res.json({
       success: true,
       message: `Successfully uploaded ${req.files?.length || 0} file(s)`
@@ -981,7 +1021,7 @@ function startListening(targetPort) {
     console.log(`mDNS access:       http://${os.hostname().toLowerCase()}.local:${targetPort}`);
 
     try {
-      mediaStore.startWatcher(rootDirectory);
+      mediaStore.startWatcher(rootDirectory, dlnaLibraries);
       ssdpServer.start(primaryIp, targetPort);
       console.log(`UPnP DLNA AV Server Active at http://${primaryIp}:${targetPort}/dlna/description.xml`);
     } catch (err) {

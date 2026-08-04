@@ -29,40 +29,63 @@ function formatDuration(seconds) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 }
 
-// --- MP4 / M4V / MOV: Read mvhd atom for duration ---
+// --- MP4 / M4V / MOV: Read mvhd for duration, tkhd for resolution ---
 function probeMP4(filePath) {
   try {
     const stat = fs.statSync(filePath);
-    const fileSize = stat.size;
-    const searchSize = Math.min(fileSize, 2 * 1024 * 1024);
+    const searchSize = Math.min(stat.size, 1 * 1024 * 1024); // search first 1MB
     const buf = readSlice(filePath, 0, searchSize);
     if (!buf) return {};
 
-    let offset = 0;
-    while (offset + 8 < buf.length) {
-      const boxSize = buf.readUInt32BE(offset);
-      const boxType = buf.slice(offset + 4, offset + 8).toString('ascii');
-      if (boxSize < 8) break;
+    let duration = null;
+    let width = 0;
+    let height = 0;
 
-      if (boxType === 'mvhd') {
-        const version = buf[offset + 8];
-        if (version === 1 && offset + 40 < buf.length) {
-          const timescale = buf.readUInt32BE(offset + 20);
-          const durationHigh = buf.readUInt32BE(offset + 24);
-          const durationLow = buf.readUInt32BE(offset + 28);
-          const durationTicks = durationHigh * 0x100000000 + durationLow;
-          const durationSec = timescale > 0 ? durationTicks / timescale : 0;
-          return { duration: formatDuration(durationSec) };
-        } else if (version === 0 && offset + 28 < buf.length) {
-          const timescale = buf.readUInt32BE(offset + 16);
-          const durationTicks = buf.readUInt32BE(offset + 20);
-          const durationSec = timescale > 0 ? durationTicks / timescale : 0;
-          return { duration: formatDuration(durationSec) };
+    function walk(buf, start, end) {
+      let i = start;
+      while (i + 8 <= end) {
+        let boxSize = buf.readUInt32BE(i);
+        const boxType = buf.slice(i + 4, i + 8).toString('ascii');
+        
+        if (boxSize === 1 && i + 16 <= end) {
+           boxSize = Number(buf.readBigUInt64BE(i + 8));
         }
-        break;
+        if (boxSize < 8 || i + boxSize > end) break;
+
+        if (['moov', 'trak', 'mdia', 'minf', 'stbl'].includes(boxType)) {
+           walk(buf, i + 8, i + boxSize);
+        } else if (boxType === 'mvhd') {
+           const version = buf[i + 8];
+           if (version === 1 && i + 40 < buf.length) {
+             const timescale = buf.readUInt32BE(i + 20);
+             const durationTicks = buf.readUInt32BE(i + 24) * 0x100000000 + buf.readUInt32BE(i + 28);
+             if (timescale > 0) duration = durationTicks / timescale;
+           } else if (version === 0 && i + 28 < buf.length) {
+             const timescale = buf.readUInt32BE(i + 16);
+             const durationTicks = buf.readUInt32BE(i + 20);
+             if (timescale > 0) duration = durationTicks / timescale;
+           }
+        } else if (boxType === 'tkhd') {
+           const version = buf[i + 8];
+           let w = 0, h = 0;
+           if (version === 1 && i + 104 <= buf.length) {
+              w = buf.readUInt32BE(i + 96) >> 16;
+              h = buf.readUInt32BE(i + 100) >> 16;
+           } else if (version === 0 && i + 92 <= buf.length) {
+              w = buf.readUInt32BE(i + 84) >> 16;
+              h = buf.readUInt32BE(i + 88) >> 16;
+           }
+           if (w > width && h > height) {
+              width = w;
+              height = h;
+           }
+        }
+        i += boxSize;
       }
-      offset += boxSize;
     }
+
+    walk(buf, 0, buf.length);
+    return { duration: formatDuration(duration), width: width || null, height: height || null };
   } catch {}
   return {};
 }
@@ -91,6 +114,10 @@ function probeMKV(filePath) {
     if (!buf) return {};
 
     let i = 0;
+    let duration = null;
+    let width = 0;
+    let height = 0;
+    
     while (i < buf.length - 10) {
       // Duration element ID 0x4489
       if (buf[i] === 0x44 && buf[i + 1] === 0x89) {
@@ -99,14 +126,37 @@ function probeMKV(filePath) {
         const size = sizeVint.value;
         if (size === 4 && dataOffset + 4 <= buf.length) {
           const ms = buf.readFloatBE(dataOffset);
-          return { duration: formatDuration(ms / 1000) };
+          duration = ms / 1000;
         } else if (size === 8 && dataOffset + 8 <= buf.length) {
           const ms = buf.readDoubleBE(dataOffset);
-          return { duration: formatDuration(ms / 1000) };
+          duration = ms / 1000;
         }
+        i += 2 + sizeVint.bytesRead + size;
+        continue;
+      } else if (buf[i] === 0xB0) { // PixelWidth
+        const sizeVint = readVarInt(buf, i + 1);
+        const dataOffset = i + 1 + sizeVint.bytesRead;
+        const size = sizeVint.value;
+        if (size <= 2 && dataOffset + size <= buf.length) {
+          const val = size === 1 ? buf[dataOffset] : buf.readUInt16BE(dataOffset);
+          if (val > width) width = val;
+        }
+        i += 1 + sizeVint.bytesRead + size;
+        continue;
+      } else if (buf[i] === 0xBA) { // PixelHeight
+        const sizeVint = readVarInt(buf, i + 1);
+        const dataOffset = i + 1 + sizeVint.bytesRead;
+        const size = sizeVint.value;
+        if (size <= 2 && dataOffset + size <= buf.length) {
+          const val = size === 1 ? buf[dataOffset] : buf.readUInt16BE(dataOffset);
+          if (val > height) height = val;
+        }
+        i += 1 + sizeVint.bytesRead + size;
+        continue;
       }
       i++;
     }
+    return { duration: formatDuration(duration), width: width || null, height: height || null };
   } catch {}
   return {};
 }
@@ -225,6 +275,15 @@ export function probeMediaFile(filePath, ext) {
   } catch {
     return {};
   }
+}
+export function getQualityFromResolution(width, height) {
+  if (!width || !height) return null;
+  const max = Math.max(width, height);
+  if (max >= 3840) return '4K';
+  if (max >= 1920) return 'FHD';
+  if (max >= 1280) return 'HD';
+  if (max > 0) return 'SD';
+  return null;
 }
 
 export default probeMediaFile;

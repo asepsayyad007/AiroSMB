@@ -6,7 +6,7 @@
 ### High-Performance Local Media Server & File Engine
 ##### Built by [Asep Sayyad](https://github.com/asepsayyad007)
 
-[![Version](https://img.shields.io/badge/Version-1.3.9-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
+[![Version](https://img.shields.io/badge/Version-1.4.0-orange?style=for-the-badge&logo=github)](https://github.com/asepsayyad007/AiroShare)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)](#technical-deep-dive)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge)](LICENSE)
 [![Stack](https://img.shields.io/badge/Stack-Node.js%20%7C%20React%20%7C%20Vite-brightgreen?style=for-the-badge&logo=node.js)](#)
@@ -28,7 +28,9 @@
 ## Key Features
 
 * **Instant DLNA Broadcasts**: Auto-discover and stream your media library to Smart TVs (Samsung Tizen, LG webOS, Android TV, FireStick), VLC, Kodi, Xbox, and PlayStation via SSDP/UPnP AV.
-* **Rich UPnP Metadata**: DLNA `<res>` items expose `duration`, `bitrate`, `sampleFrequency`, and `nrAudioChannels` — extracted at scan time from binary file headers with no external tools.
+* **Independent DLNA Media Libraries**: Assign dedicated, independent folders for Videos, Photos, and Music for your DLNA Smart TV without mixing them with your main shared folder.
+* **Live Directory Watching**: The media server instantly syncs and re-indexes media the moment you add, remove, or modify files via Windows Explorer using `chokidar` watchers.
+* **Rich UPnP Metadata**: DLNA `<res>` items expose `duration`, `resolution`, `bitrate`, `sampleFrequency`, and `nrAudioChannels` — extracted dynamically from binary file headers (e.g. MP4/MKV width/height) with no external tools.
 * **Smooth Seeking & Scrubbing**: `DLNA.ORG_OP=11` enables both byte-range and time-based seeking across all 30+ supported media types.
 * **Dual-Select "Send to Phone"**: Select multiple files or folders from your PC and instantly generate a local pairing QR code for easy smartphone downloading.
 * **High-Speed FTP Engine**: Built-in anonymous FTP streaming server with a dynamically allocated port (default `2121`, auto-increments on conflict).
@@ -128,8 +130,8 @@ AiroShare is built to be a robust, high-performance, and lightweight local area 
 * **VLC UPnP Icon Renderer**: Serves a transparent 256×256 PNG from `public/AiroShare.png` at `/dlna/icon-256.png` so the AiroShare logo appears inside VLC, Kodi, and Smart TV device lists.
 
 ### Rich UPnP Media Metadata
-* **Binary Media Prober**: `mediaProber.js` reads raw binary file headers at scan time (no ffprobe required) to extract `duration`, `bitrate`, `sampleFrequency`, and `nrAudioChannels`. Supports MP4 `mvhd` atom, MKV `Duration` EBML element, MP3 frame sync headers, FLAC `STREAMINFO`, and WAV `fmt` chunk.
-* **Enriched DIDL-Lite XML**: All UPnP `<res>` items include `duration`, `bitrate`, `nrAudioChannels`, and `sampleFrequency` when available — enabling progress bars, seek previews, and audio renderer configuration in Smart TV UIs and Sonos/AV receivers.
+* **Binary Media Prober**: `mediaProber.js` reads raw binary file headers at scan time (no ffprobe required) to extract `duration`, `resolution` (width/height), `bitrate`, `sampleFrequency`, and `nrAudioChannels`. Supports MP4 `mvhd`/`tkhd` atoms, MKV `Duration`/`PixelWidth` EBML elements, MP3 frame sync headers, FLAC `STREAMINFO`, and WAV `fmt` chunk.
+* **Enriched DIDL-Lite XML**: All UPnP `<res>` items include `duration`, `resolution`, `bitrate`, `nrAudioChannels`, and `sampleFrequency` when available — enabling progress bars, 4K/FHD resolution badges, seek previews, and audio renderer configuration in Smart TV UIs and Sonos/AV receivers.
 * **30+ Format Support**: `mimeProtocolInfoMap` covers video (`.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.webm`, `.ts`, `.m2ts`, `.mpg`, `.flv`, `.3gp`, `.vob`, `.ogv`), audio (`.mp3`, `.flac`, `.wav`, `.aac`, `.m4a`, `.ogg`, `.opus`, `.wma`, `.alac`, `.mka`), and images (`.jpg`, `.png`, `.webp`, `.gif`, `.bmp`, `.tiff`).
 
 ### Security Isolation

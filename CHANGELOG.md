@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-08-04
+
+### Added
+- **Independent DLNA Media Libraries**: DLNA Media Server can now decouple from the Master Shared Directory. Users can now assign dedicated, separate folders for Videos, Photos, and Music for Smart TVs without mixing files.
+- **Automated Video Resolution Tagging**: Introduced a pure Node.js binary header probing engine (`mediaProber.js`) to extract native resolution (width/height) from `.mp4`, `.mkv`, and `.m4v` video files. The dashboard and DLNA clients now dynamically auto-tag media as `[4K]`, `[FHD]`, `[HD]`, or `[SD]` even if the filename lacks quality indicators.
+- **Live Directory Watching**: Switched media scanning from manual refresh polling to instant, live file-system watching using `chokidar`. Any file added, removed, or modified via Explorer instantly pushes changes to the active DLNA engine and dashboard without manual rescanning.
+
+### Fixed
+- **Backend JSON Payload parsing**: Fixed a reference error during DLNA configuration updates caused by improper payload destructuring.
+
 ## [1.3.9] - 2026-08-04
 
 ### Added
