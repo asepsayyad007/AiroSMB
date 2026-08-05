@@ -178,7 +178,7 @@ class MediaStore {
       this.initContainers();
       this.items.clear();
 
-      const videoExts = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.m4v', '.ts', '.wmv', '.3gp', '.mpg', '.mpeg', '.m2ts', '.vob', '.ogv'];
+      const videoExts = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.m4v', '.ts', '.wmv', '.3gp', '.3g2', '.mpg', '.mpeg', '.m2ts', '.mts', '.vob', '.ogv', '.divx', '.asf', '.f4v', '.rm', '.rmvb', '.m3u8'];
       const audioExts = ['.mp3', '.flac', '.wav', '.aac', '.ogg', '.m4a', '.wma', '.opus', '.alac'];
       const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff'];
 
@@ -237,9 +237,9 @@ class MediaStore {
             else if (isImage) upnpClass = 'object.item.imageItem.photo';
 
             const cleaned = cleanMediaName(entry.name);
-            let displayTitle = cleaned.title || entry.name;
-            if (cleaned.year) displayTitle += ` (${cleaned.year})`;
-            if (cleaned.quality) displayTitle += ` [${cleaned.quality}]`;
+            let baseTitle = cleaned.title || entry.name;
+            if (cleaned.year) baseTitle += ` (${cleaned.year})`;
+            let displayTitle = baseTitle;
 
             const itemObj = {
               id: itemId,
@@ -255,6 +255,7 @@ class MediaStore {
               protocolInfo,
               // Media metadata (populated from binary header probe, null if not extractable)
               duration: null,
+              resolution: null,
               bitrate: null,
               sampleFrequency: null,
               nrAudioChannels: null,
@@ -262,7 +263,7 @@ class MediaStore {
               posterHash: null,
               mediaTitle: cleaned.title || null,
               mediaYear: cleaned.year || null,
-              mediaQuality: cleaned.quality || null
+              mediaQuality: null
             };
 
             // Probe binary headers for media metadata (non-blocking, never throws)
@@ -273,10 +274,15 @@ class MediaStore {
               if (meta.sampleFrequency) itemObj.sampleFrequency = meta.sampleFrequency;
               if (meta.nrAudioChannels) itemObj.nrAudioChannels = meta.nrAudioChannels;
               
-              if (!itemObj.mediaQuality && meta.width && meta.height) {
-                 itemObj.mediaQuality = getQualityFromResolution(meta.width, meta.height);
-                 if (itemObj.mediaQuality) displayTitle += ` [${itemObj.mediaQuality}]`;
+              if (meta.width && meta.height) {
+                 itemObj.resolution = `${meta.width}x${meta.height}`;
+                 itemObj.mediaQuality = getQualityFromResolution(meta.width, meta.height, meta.fps);
+                 if (itemObj.mediaQuality) displayTitle = `[${itemObj.mediaQuality}] ${baseTitle}`;
+              } else if (cleaned.quality) {
+                 itemObj.mediaQuality = cleaned.quality;
+                 displayTitle = `[${cleaned.quality}] ${baseTitle}`;
               }
+              itemObj.displayTitle = displayTitle;
             } catch {
               // Ignore probe failures — metadata is optional
             }

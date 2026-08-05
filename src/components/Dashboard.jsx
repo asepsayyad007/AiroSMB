@@ -548,10 +548,7 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
                              <FileText size={18} color="var(--text-muted)" />}
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {file.displayName || file.name}
-                              </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
                               {file.quality && (
                                 <span style={{
                                   fontSize: '0.65rem',
@@ -560,13 +557,17 @@ export default function Dashboard({ networkInfo, onRefreshNetwork, services: pro
                                   borderRadius: '4px',
                                   letterSpacing: '0.5px',
                                   lineHeight: '1.2',
-                                  background: file.quality === '4K' ? 'rgba(234, 179, 8, 0.2)' : file.quality === 'FHD' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                                  color: file.quality === '4K' ? '#facc15' : file.quality === 'FHD' ? 'var(--accent-emerald)' : '#818cf8',
-                                  border: `1px solid ${file.quality === '4K' ? 'rgba(234, 179, 8, 0.4)' : file.quality === 'FHD' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(99, 102, 241, 0.4)'}`
+                                  flexShrink: 0,
+                                  background: (file.quality === 'FHD' || file.quality === '2K') ? 'rgba(234, 179, 8, 0.2)' : (file.quality === '8K' || file.quality === '4K') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                                  color: (file.quality === 'FHD' || file.quality === '2K') ? '#facc15' : (file.quality === '8K' || file.quality === '4K') ? 'var(--accent-emerald)' : '#818cf8',
+                                  border: `1px solid ${(file.quality === 'FHD' || file.quality === '2K') ? 'rgba(234, 179, 8, 0.4)' : (file.quality === '8K' || file.quality === '4K') ? 'rgba(16, 185, 129, 0.4)' : 'rgba(99, 102, 241, 0.4)'}`
                                 }}>
                                   {file.quality}
                                 </span>
                               )}
+                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {file.displayName || file.name}
+                              </span>
                             </div>
                             {file.displayName && file.displayName !== file.name && (
                               <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

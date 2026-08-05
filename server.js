@@ -149,7 +149,7 @@ const adminAuth = (req, res, next) => {
 // Serve static frontend build if available
 const distPath = path.join(APP_PATH, 'dist');
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, { setHeaders: (res) => res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0') }));
 }
 
 // Track Active Client Connections
@@ -230,7 +230,7 @@ function getLocalIpAddresses() {
 function getFileCategory(mimeType, filename) {
   if (!mimeType) {
     const ext = path.extname(filename).toLowerCase();
-    if (['.mkv', '.mp4', '.avi', '.mov', '.webm', '.flv', '.wmv', '.m4v', '.ts', '.m3u8'].includes(ext)) return 'video';
+    if (['.mkv', '.mp4', '.avi', '.mov', '.webm', '.flv', '.wmv', '.m4v', '.ts', '.m3u8', '.m2ts', '.mts', '.vob', '.mpg', '.mpeg', '.3gp', '.3g2', '.ogv', '.divx', '.asf', '.f4v', '.rm', '.rmvb'].includes(ext)) return 'video';
     if (['.mp3', '.flac', '.wav', '.aac', '.ogg', '.m4a', '.wma'].includes(ext)) return 'audio';
     if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].includes(ext)) return 'image';
     if (['.pdf', '.docx', '.doc', '.txt', '.pptx', '.xlsx', '.epub'].includes(ext)) return 'document';
@@ -769,15 +769,19 @@ app.get('/api/files/browse', adminAuth, (req, res) => {
           const ext = path.extname(item.name).toLowerCase();
 
           const cleaned = cleanMediaName(item.name);
-          let quality = cleaned.quality || null;
+          let quality = null;
           
-          if (!quality && category === 'video') {
+          if (category === 'video') {
              try {
-                const meta = probeMediaFile(fullItemPath);
+                const meta = probeMediaFile(fullItemPath, ext);
                 if (meta.width && meta.height) {
-                   quality = getQualityFromResolution(meta.width, meta.height);
+                   quality = getQualityFromResolution(meta.width, meta.height, meta.fps);
                 }
              } catch (err) {}
+          }
+
+          if (!quality) {
+             quality = cleaned.quality || null;
           }
 
           let displayName = cleaned.title || item.name;

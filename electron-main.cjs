@@ -41,6 +41,10 @@ function startServer(port) {
 
   serverProcess.on('exit', (code, signal) => {
     console.log(`[AiroShare Backend Exit] Code: ${code}, Signal: ${signal}`);
+    if (!isQuitting) {
+      console.log('[AiroShare Electron] Respawning Express server process...');
+      setTimeout(() => startServer(port), 1000);
+    }
   });
 }
 

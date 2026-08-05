@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-08-05
+
+### Added
+- **Multi-Format Video Probing Engine**: Expanded native Node.js binary header prober (`mediaProber.js`) to extract resolution (width/height), frame rate (FPS), and duration from `.avi`, `.divx`, `.wmv`, `.asf`, `.flv`, `.f4v`, `.ts`, `.m2ts`, `.mts`, `.mpg`, `.mpeg`, `.vob`, and `.3gp` video files, complete with binary magic-byte header sniffing fallback.
+- **High-FPS (60FPS+) Automated Tagging**: Added frame rate detection across video containers. Videos running at 60 FPS and above are now automatically tagged (e.g. `[FHD 60FPS]`, `[4K 60FPS]`, `[4K 120FPS]`).
+- **Uncheatable Binary Resolution Priority**: Re-engineered media classification to prioritize binary header resolution over misleading filename text regex matches (such as YouTube clickbait `8K-4K` strings).
+
+### Changed
+- **Prepended Resolution Labels**: Resolution badges are now prepended *before* the media title in both the Dashboard UI and DLNA UPnP client title listings.
+- **Refreshed Resolution Palette**: Updated badge color schemes in the UI — FHD/2K badges use Gold/Yellow, while 4K/8K badges use Emerald Green.
+
 ## [1.4.0] - 2026-08-04
 
 ### Added

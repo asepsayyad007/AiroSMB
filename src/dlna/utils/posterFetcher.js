@@ -46,18 +46,22 @@ export function cleanMediaName(filename) {
 
   // Detect quality tag from filename
   let quality = null;
-  if (/\b(2160p|4k|uhd|ds4k|8k)\b/i.test(name)) {
+  if (/\b(4320p|8k)\b/i.test(name)) {
+    quality = '8K';
+  } else if (/\b(2160p|4k|uhd|ds4k)\b/i.test(name)) {
     quality = '4K';
+  } else if (/\b(1440p|2k|qhd|wqhd)\b/i.test(name)) {
+    quality = '2K';
   } else if (/\b(1080p|fhd|fullhd|1080i)\b/i.test(name)) {
     quality = 'FHD';
   } else if (/\b(720p|hd|720i)\b/i.test(name)) {
     quality = 'HD';
-  } else if (/\b(480p|576p|sd|dvd)\b/i.test(name)) {
+  } else if (/\b(480p|576p|360p|240p|sd|dvd)\b/i.test(name)) {
     quality = 'SD';
   }
 
   // Remove resolution, quality, source, audio, codec, website release group tags
-  name = name.replace(/\b(1080p|720p|480p|2160p|4k|uhd|hdr|sdr|bluray|blu-ray|bdrip|brrip|webrip|web-dl|webdl|dvdrip|hdtv|hq|hd|x264|x265|h264|h265|hevc|avc|xvid|divx|ac3|aac|dts|ddp5\.1|ddp|esub|sub|hindi|english|telugu|tamil|punjabi|malayalam|kannada|bengali|marathi|dual|multi|audio|extended|theatrical|remastered|criterion|proper|remux|amzn|nf|hmax|hdhub4u|yts|yify|rarbg|1337x|mkv|mp4|avi|tv)\b.*/i, '');
+  name = name.replace(/\b(1080p|720p|480p|2160p|4320p|1440p|8k|4k|2k|uhd|hdr|sdr|bluray|blu-ray|bdrip|brrip|webrip|web-dl|webdl|dvdrip|hdtv|hq|hd|x264|x265|h264|h265|hevc|avc|xvid|divx|ac3|aac|dts|ddp5\.1|ddp|esub|sub|hindi|english|telugu|tamil|punjabi|malayalam|kannada|bengali|marathi|dual|multi|audio|extended|theatrical|remastered|criterion|proper|remux|amzn|nf|hmax|hdhub4u|yts|yify|rarbg|1337x|mkv|mp4|avi|tv)\b.*/i, '');
 
   // If year was found, truncate at the year index
   if (year) {
