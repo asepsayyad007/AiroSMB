@@ -38,8 +38,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist-electron/AiroShare *.exe
-            dist-electron/AiroShare Setup *.exe
+            dist-electron/*.exe
           draft: false
           prerelease: false
         env:
